@@ -41,7 +41,8 @@
     Download:mkIcon([['path',{d:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}],['polyline',{points:'7 10 12 15 17 10'}],['line',{x1:12,y1:15,x2:12,y2:3}]]),
     Upload:mkIcon([['path',{d:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}],['polyline',{points:'17 8 12 3 7 8'}],['line',{x1:12,y1:3,x2:12,y2:15}]]),
     RefreshCw:mkIcon([['path',{d:'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8'}],['path',{d:'M21 3v5h-5'}],['path',{d:'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16'}],['path',{d:'M8 16H3v5'}]]),
-    CalendarDays:mkIcon([['path',{d:'M8 2v4'}],['path',{d:'M16 2v4'}],['rect',{width:18,height:18,x:3,y:4,rx:2}],['path',{d:'M3 10h18'}],['path',{d:'M8 14h.01'}],['path',{d:'M12 14h.01'}],['path',{d:'M16 14h.01'}],['path',{d:'M8 18h.01'}],['path',{d:'M12 18h.01'}],['path',{d:'M16 18h.01'}]])
+    CalendarDays:mkIcon([['path',{d:'M8 2v4'}],['path',{d:'M16 2v4'}],['rect',{width:18,height:18,x:3,y:4,rx:2}],['path',{d:'M3 10h18'}],['path',{d:'M8 14h.01'}],['path',{d:'M12 14h.01'}],['path',{d:'M16 14h.01'}],['path',{d:'M8 18h.01'}],['path',{d:'M12 18h.01'}],['path',{d:'M16 18h.01'}]]),
+    Menu:mkIcon([['line',{x1:4,x2:20,y1:6,y2:6}],['line',{x1:4,x2:20,y1:12,y2:12}],['line',{x1:4,x2:20,y1:18,y2:18}]])
   };
 })();
 </script>
@@ -57,6 +58,7 @@ body{color:#F0F0F8;font-family:'DM Sans',sans-serif;overflow:hidden}
 input,select,textarea,button{font-family:'DM Sans',sans-serif}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
 @keyframes checkPop{0%{transform:scale(0.8)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
 .page-enter{animation:fadeIn .25s ease-out}
 .modal-slide{animation:slideInRight .28s cubic-bezier(0.16,1,0.3,1)}
@@ -2539,18 +2541,119 @@ const Sidebar = ({
   mobile,
   syncDot
 }) => {
-  if (mobile) return /*#__PURE__*/React.createElement("nav", {
+  const [open, setOpen] = useState(false);
+  if (mobile) return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
-      bottom: 0,
+      top: 0,
       left: 0,
       right: 0,
       zIndex: 100,
+      height: 52,
       background: C.surface,
-      borderTop: `1px solid ${C.border}`,
+      borderBottom: `1px solid ${C.border}`,
       display: 'flex',
-      justifyContent: 'space-around',
-      padding: '6px 0'
+      alignItems: 'center',
+      padding: '0 16px',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setOpen(true),
+    style: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      color: C.text,
+      padding: 4,
+      display: 'flex',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement(LR.Menu, {
+    size: 22
+  })), /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 18,
+      fontWeight: 800,
+      color: C.green,
+      margin: 0
+    }
+  }, "Finance", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, "OS")), syncDot && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 'auto',
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: syncDot,
+      flexShrink: 0
+    }
+  })), open && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setOpen(false),
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 200,
+      background: 'rgba(0,0,0,.6)',
+      backdropFilter: 'blur(2px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 260,
+      background: C.surface,
+      borderRight: `1px solid ${C.border}`,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '20px 12px',
+      animation: 'slideInLeft .22s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 28,
+      padding: '0 8px'
+    }
+  }, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 20,
+      fontWeight: 800,
+      color: C.green,
+      margin: 0
+    }
+  }, "Finance", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, "OS")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setOpen(false),
+    style: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      color: C.muted,
+      display: 'flex',
+      alignItems: 'center',
+      padding: 4
+    }
+  }, /*#__PURE__*/React.createElement(LR.X, {
+    size: 18
+  }))), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3
     }
   }, NAV.map(({
     id,
@@ -2560,53 +2663,60 @@ const Sidebar = ({
     const a = view === id;
     return /*#__PURE__*/React.createElement("button", {
       key: id,
-      onClick: () => setView(id),
+      onClick: () => {
+        setView(id);
+        setOpen(false);
+      },
       style: {
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        gap: 3,
-        background: 'none',
+        gap: 10,
+        padding: '12px 12px',
+        borderRadius: 8,
         border: 'none',
-        cursor: 'pointer',
-        padding: '4px 10px',
+        background: a ? C.green + '22' : 'transparent',
         color: a ? C.green : C.muted,
-        fontSize: 9,
+        cursor: 'pointer',
+        fontSize: 15,
         fontFamily: 'DM Sans',
-        fontWeight: a ? 600 : 400
+        textAlign: 'left',
+        fontWeight: a ? 600 : 400,
+        borderLeft: a ? `3px solid ${C.green}` : '3px solid transparent'
       }
     }, /*#__PURE__*/React.createElement(Icon, {
-      size: 20
-    }), /*#__PURE__*/React.createElement("span", null, label.split(' ')[0]));
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: onCfg,
+      size: 18
+    }), label);
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      onCfg();
+      setOpen(false);
+    },
     style: {
       display: 'flex',
-      flexDirection: 'column',
       alignItems: 'center',
-      gap: 3,
-      background: 'none',
+      gap: 10,
+      padding: '12px 12px',
+      borderRadius: 8,
       border: 'none',
-      cursor: 'pointer',
-      padding: '4px 10px',
+      background: 'transparent',
       color: C.muted,
-      fontSize: 9,
+      cursor: 'pointer',
+      fontSize: 15,
       fontFamily: 'DM Sans',
-      position: 'relative'
+      textAlign: 'left'
     }
   }, /*#__PURE__*/React.createElement(LR.Settings, {
-    size: 20
-  }), syncDot && /*#__PURE__*/React.createElement("span", {
+    size: 18
+  }), "Configura\xE7\xF5es", syncDot && /*#__PURE__*/React.createElement("span", {
     style: {
-      position: 'absolute',
-      top: 4,
-      right: 8,
-      width: 7,
-      height: 7,
+      marginLeft: 'auto',
+      width: 8,
+      height: 8,
       borderRadius: '50%',
-      background: syncDot
+      background: syncDot,
+      flexShrink: 0
     }
-  }), /*#__PURE__*/React.createElement("span", null, "Config.")));
+  })))));
   return /*#__PURE__*/React.createElement("aside", {
     style: {
       width: 220,
@@ -2990,7 +3100,7 @@ const App = () => {
     style: {
       flex: 1,
       overflow: 'hidden',
-      paddingBottom: mobile ? 64 : 0
+      paddingTop: mobile ? 52 : 0
     }
   }, VIEWS[view]), /*#__PURE__*/React.createElement(Config, {
     open: cfgOpen,
