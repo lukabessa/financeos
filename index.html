@@ -382,6 +382,67 @@ const ProgBar = ({
     transition: 'width .5s ease'
   }
 }));
+const MonthNav = ({
+  month,
+  onChange
+}) => {
+  const cur = getMes();
+  const go = d => {
+    const [y, m] = month.split('-').map(Number);
+    const dt = new Date(y, m - 1 + d, 1);
+    const nm = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+    if (nm > cur) return;
+    onChange(nm);
+  };
+  const isCur = month === cur;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => go(-1),
+    style: {
+      background: 'none',
+      border: `1px solid ${C.border}`,
+      borderRadius: 6,
+      color: C.text,
+      cursor: 'pointer',
+      padding: '3px 11px',
+      fontSize: 18,
+      lineHeight: 1
+    }
+  }, "\u2039"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 15,
+      fontWeight: 700,
+      minWidth: 62,
+      textAlign: 'center',
+      color: isCur ? C.green : C.amber
+    }
+  }, mesLabel(month)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => go(1),
+    style: {
+      background: 'none',
+      border: `1px solid ${isCur ? C.border : C.border}`,
+      borderRadius: 6,
+      color: isCur ? C.border : C.text,
+      cursor: isCur ? 'default' : 'pointer',
+      padding: '3px 11px',
+      fontSize: 18,
+      lineHeight: 1
+    }
+  }, "\u203A"), !isCur && /*#__PURE__*/React.createElement("button", {
+    onClick: () => onChange(cur),
+    style: {
+      ...btn('ghost'),
+      padding: '3px 10px',
+      fontSize: 11
+    }
+  }, "Hoje"));
+};
 const ChartTip = ({
   active,
   payload,
@@ -582,7 +643,9 @@ const Stat = ({
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 const Dashboard = ({
-  data
+  data,
+  viewMonth,
+  onMonthChange
 }) => {
   const mobile = useMobile();
   const {
@@ -592,7 +655,10 @@ const Dashboard = ({
     config,
     historicoMensal
   } = data;
-  const mes = config.mesAtual || getMes();
+  const mes = viewMonth || config.mesAtual || getMes();
+  const isCurMes = mes === getMes();
+
+  // Mês atual: calcula ao vivo; mês passado: usa historicoMensal
   const totalFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
   const pagoFixas = useMemo(() => despesasFixas.filter(d => d.pago).reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
   const totalCartoes = useMemo(() => cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [cartoes, mes]);
@@ -600,11 +666,10 @@ const Dashboard = ({
     const f = c.faturas?.[mes];
     return s + (f?.pago ? f?.valor || 0 : 0);
   }, 0), [cartoes, mes]);
-  // Parcelas sem cartão entram no total e no pago separadamente (com cartão já vão pela fatura)
   const totalParc = useMemo(() => parcelas.filter(p => p.status === 'ativa' && !p.cartaoId).reduce((s, p) => s + (p.valorParcela || 0), 0), [parcelas]);
   const pagoParc = useMemo(() => parcelas.filter(p => p.status === 'ativa' && !p.cartaoId && p.pago).reduce((s, p) => s + (p.valorParcela || 0), 0), [parcelas]);
-  const totalMes = totalFixas + totalCartoes + totalParc;
-  const totalPago = pagoFixas + pagoCartoes + pagoParc;
+  const totalMes = isCurMes ? totalFixas + totalCartoes + totalParc : (historicoMensal[mes]?.total || 0) + totalCartoes;
+  const totalPago = isCurMes ? pagoFixas + pagoCartoes + pagoParc : (historicoMensal[mes]?.pago || 0) + pagoCartoes;
   const aPagar = Math.max(totalMes - totalPago, 0);
   const pctComp = config.rendaMensal > 0 ? totalMes / config.rendaMensal * 100 : 0;
   const donut = [{
@@ -658,7 +723,12 @@ const Dashboard = ({
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 20
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 20,
+      flexWrap: 'wrap',
+      gap: 10
     }
   }, /*#__PURE__*/React.createElement("h1", {
     style: {
@@ -666,13 +736,20 @@ const Dashboard = ({
       fontSize: mobile ? 22 : 28,
       fontWeight: 800
     }
-  }, "Dashboard ", /*#__PURE__*/React.createElement("span", {
+  }, "Dashboard"), /*#__PURE__*/React.createElement(MonthNav, {
+    month: mes,
+    onChange: onMonthChange
+  })), !isCurMes && /*#__PURE__*/React.createElement("div", {
     style: {
-      color: C.muted,
-      fontSize: 14,
-      fontWeight: 400
+      marginBottom: 14,
+      padding: '10px 14px',
+      background: C.amber + '11',
+      border: `1px solid ${C.amber}33`,
+      borderRadius: 8,
+      fontSize: 13,
+      color: C.amber
     }
-  }, mesLabel(mes)))), /*#__PURE__*/React.createElement("div", {
+  }, "Visualizando hist\xF3rico de ", /*#__PURE__*/React.createElement("strong", null, mesLabel(mes)), " \u2014 despesas fixas e parcelas mostram o resumo do per\xEDodo"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
       gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(200px,1fr))',
@@ -855,7 +932,7 @@ const Dashboard = ({
       fill: C.green,
       r: 4
     }
-  })))), proximos.length > 0 && /*#__PURE__*/React.createElement("div", {
+  })))), isCurMes && proximos.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: card()
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -915,9 +992,13 @@ const Dashboard = ({
 // ── DESPESAS FIXAS ───────────────────────────────────────────────────────
 const DespesasFixas = ({
   data,
-  onChange
+  onChange,
+  viewMonth,
+  onMonthChange
 }) => {
   const mobile = useMobile();
+  const mes = viewMonth || getMes();
+  const isCurMes = mes === getMes();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({});
@@ -1036,12 +1117,32 @@ const DespesasFixas = ({
       fontSize: 13,
       marginTop: 4
     }
-  }, fmt(total), " \xB7 ", filtered.length, " item", filtered.length !== 1 ? 's' : '')), /*#__PURE__*/React.createElement("button", {
+  }, fmt(total), " \xB7 ", filtered.length, " item", filtered.length !== 1 ? 's' : '')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement(MonthNav, {
+    month: mes,
+    onChange: onMonthChange
+  }), isCurMes && /*#__PURE__*/React.createElement("button", {
     onClick: openAdd,
     style: btn('primary')
   }, /*#__PURE__*/React.createElement(LR.Plus, {
     size: 15
-  }), "Adicionar")), /*#__PURE__*/React.createElement("div", {
+  }), "Adicionar"))), !isCurMes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      padding: '10px 14px',
+      background: C.amber + '11',
+      border: `1px solid ${C.amber}33`,
+      borderRadius: 8,
+      fontSize: 13,
+      color: C.amber
+    }
+  }, "Visualizando ", /*#__PURE__*/React.createElement("strong", null, mesLabel(mes)), " \u2014 os itens refletem o estado atual; edi\xE7\xE3o dispon\xEDvel apenas no m\xEAs corrente"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -1108,14 +1209,14 @@ const DespesasFixas = ({
       borderLeft: `3px solid ${CAT_COLORS[item.categoria] || C.border}`
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => togglePago(item.id),
+    onClick: () => isCurMes && togglePago(item.id),
     style: {
       width: 28,
       height: 28,
       borderRadius: '50%',
       border: `2px solid ${item.pago ? C.green : C.border}`,
       background: item.pago ? C.green : 'transparent',
-      cursor: 'pointer',
+      cursor: isCurMes ? 'pointer' : 'default',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -1162,7 +1263,7 @@ const DespesasFixas = ({
       fontWeight: 700,
       flexShrink: 0
     }
-  }, fmt(item.valor)), /*#__PURE__*/React.createElement("button", {
+  }, fmt(item.valor)), isCurMes && /*#__PURE__*/React.createElement("button", {
     onClick: () => openEdit(item),
     style: {
       ...btn('ghost'),
@@ -1238,14 +1339,17 @@ const DespesasFixas = ({
 // ── CARTÕES (simplificado) ───────────────────────────────────────────────
 const Cartoes = ({
   data,
-  onChange
+  onChange,
+  viewMonth,
+  onMonthChange
 }) => {
   const mobile = useMobile();
   const [mCard, setMCard] = useState(false);
   const [editC, setEditC] = useState(null);
   const [fC, setFC] = useState({});
   const [errs, setErrs] = useState({});
-  const mes = data.config?.mesAtual || getMes();
+  const mes = viewMonth || getMes();
+  const isCurMes = mes === getMes();
   const openAddCard = () => {
     setEditC(null);
     setFC({
@@ -1385,12 +1489,22 @@ const Cartoes = ({
     style: {
       color: C.green
     }
-  }, fmt(totalPago))))), /*#__PURE__*/React.createElement("button", {
+  }, fmt(totalPago))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement(MonthNav, {
+    month: mes,
+    onChange: onMonthChange
+  }), isCurMes && /*#__PURE__*/React.createElement("button", {
     onClick: openAddCard,
     style: btn('primary')
   }, /*#__PURE__*/React.createElement(LR.Plus, {
     size: 15
-  }), "Novo Cart\xE3o")), data.cartoes.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }), "Novo Cart\xE3o"))), data.cartoes.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       ...card(),
       textAlign: 'center',
@@ -1462,7 +1576,7 @@ const Cartoes = ({
         marginTop: 4,
         letterSpacing: 2
       }
-    }, "\u2022\u2022\u2022\u2022 ", c.digitos || '****')), /*#__PURE__*/React.createElement("button", {
+    }, "\u2022\u2022\u2022\u2022 ", c.digitos || '****')), isCurMes && /*#__PURE__*/React.createElement("button", {
       onClick: () => openEditCard(c),
       style: {
         padding: '4px 8px',
@@ -1519,13 +1633,16 @@ const Cartoes = ({
       step: "0.01",
       placeholder: "0,00",
       value: fat.valor || '',
-      onChange: e => setValorFatura(c.id, e.target.value)
+      onChange: e => isCurMes && setValorFatura(c.id, e.target.value),
+      readOnly: !isCurMes
     })), /*#__PURE__*/React.createElement("button", {
-      onClick: () => togglePago(c.id),
+      onClick: () => isCurMes && togglePago(c.id),
       style: {
         ...btn(fat.pago ? 'primary' : 'ghost'),
         marginBottom: 14,
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        opacity: isCurMes ? 1 : .6,
+        cursor: isCurMes ? 'pointer' : 'default'
       }
     }, fat.pago ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LR.Check, {
       size: 14
@@ -1659,9 +1776,13 @@ const Cartoes = ({
 // ── PARCELAS ─────────────────────────────────────────────────────────────
 const Parcelas = ({
   data,
-  onChange
+  onChange,
+  viewMonth,
+  onMonthChange
 }) => {
   const mobile = useMobile();
+  const mes = viewMonth || getMes();
+  const isCurMes = mes === getMes();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({});
@@ -1788,12 +1909,32 @@ const Parcelas = ({
     style: {
       color: C.amber
     }
-  }, fmt(totalAtivo)))), /*#__PURE__*/React.createElement("button", {
+  }, fmt(totalAtivo)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement(MonthNav, {
+    month: mes,
+    onChange: onMonthChange
+  }), isCurMes && /*#__PURE__*/React.createElement("button", {
     onClick: openAdd,
     style: btn('primary')
   }, /*#__PURE__*/React.createElement(LR.Plus, {
     size: 15
-  }), "Adicionar")), /*#__PURE__*/React.createElement("div", {
+  }), "Adicionar"))), !isCurMes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      padding: '10px 14px',
+      background: C.amber + '11',
+      border: `1px solid ${C.amber}33`,
+      borderRadius: 8,
+      fontSize: 13,
+      color: C.amber
+    }
+  }, "Visualizando ", /*#__PURE__*/React.createElement("strong", null, mesLabel(mes)), " \u2014 estado atual das parcelas"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -1828,10 +1969,10 @@ const Parcelas = ({
     const accentColor = item.status === 'quitada' ? C.green : item.pago ? C.green : C.amber;
     return /*#__PURE__*/React.createElement("div", {
       key: item.id,
-      onClick: () => openEdit(item),
+      onClick: () => isCurMes && openEdit(item),
       style: {
         ...card(),
-        cursor: 'pointer',
+        cursor: isCurMes ? 'pointer' : 'default',
         opacity: item.status === 'quitada' ? .65 : 1,
         borderLeft: `3px solid ${accentColor}`
       }
@@ -1914,7 +2055,7 @@ const Parcelas = ({
         fontSize: 11,
         color: C.muted
       }
-    }, "Total: ", fmt(item.valorTotal))), semCartao && item.status === 'ativa' && /*#__PURE__*/React.createElement("button", {
+    }, "Total: ", fmt(item.valorTotal))), semCartao && item.status === 'ativa' && isCurMes && /*#__PURE__*/React.createElement("button", {
       onClick: e => togglePagoParcela(e, item.id),
       style: {
         ...btn(item.pago ? 'primary' : 'ghost'),
@@ -2314,7 +2455,9 @@ const Config = ({
 
 // ── MESES ────────────────────────────────────────────────────────────────
 const Meses = ({
-  data
+  data,
+  viewMonth,
+  onMonthChange
 }) => {
   const mobile = useMobile();
   const {
@@ -2374,7 +2517,17 @@ const Meses = ({
       fontSize: 13,
       marginTop: 4
     }
-  }, allMeses.length, " m\xEAs(es) registrado(s)")), /*#__PURE__*/React.createElement("div", {
+  }, allMeses.length, " m\xEAs(es) registrado(s)")), viewMonth && viewMonth !== mes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      padding: '10px 14px',
+      background: C.blue + '11',
+      border: `1px solid ${C.blue}33`,
+      borderRadius: 8,
+      fontSize: 13,
+      color: C.blue
+    }
+  }, "Navegando em ", /*#__PURE__*/React.createElement("strong", null, mesLabel(viewMonth)), " \u2014 clique em outro m\xEAs para mudar a visualiza\xE7\xE3o"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -2396,11 +2549,17 @@ const Meses = ({
     const aPagar = Math.max(total - pago, 0);
     const pct = total > 0 ? pago / total * 100 : 0;
     const accentColor = atual ? C.blue : pct >= 100 ? C.green : C.amber;
+    const isSelected = viewMonth === m;
     return /*#__PURE__*/React.createElement("div", {
       key: m,
+      onClick: () => onMonthChange && onMonthChange(m),
       style: {
         ...card(),
-        borderLeft: `3px solid ${accentColor}`
+        borderLeft: `3px solid ${accentColor}`,
+        cursor: onMonthChange ? 'pointer' : 'default',
+        outline: isSelected ? `2px solid ${accentColor}` : 'none',
+        outlineOffset: 2,
+        transition: 'outline .15s'
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2969,7 +3128,7 @@ const App = () => {
   const [mobile, setMob] = useState(window.innerWidth < 768);
   const [syncCfg, setSyncC] = useState(loadSyncCfg);
   const [syncSt, setSyncSt] = useState('idle'); // 'idle'|'syncing'|'synced'|'error'
-
+  const [viewMonth, setViewMonth] = useState(getMes);
   useEffect(() => {
     const h = () => setMob(window.innerWidth < 768);
     window.addEventListener('resize', h);
@@ -3059,22 +3218,32 @@ const App = () => {
   }, []);
   const VIEWS = {
     dashboard: /*#__PURE__*/React.createElement(Dashboard, {
-      data: data
+      data: data,
+      viewMonth: viewMonth,
+      onMonthChange: setViewMonth
     }),
     despesas: /*#__PURE__*/React.createElement(DespesasFixas, {
       data: data,
-      onChange: handleChange
+      onChange: handleChange,
+      viewMonth: viewMonth,
+      onMonthChange: setViewMonth
     }),
     cartoes: /*#__PURE__*/React.createElement(Cartoes, {
       data: data,
-      onChange: handleChange
+      onChange: handleChange,
+      viewMonth: viewMonth,
+      onMonthChange: setViewMonth
     }),
     parcelas: /*#__PURE__*/React.createElement(Parcelas, {
       data: data,
-      onChange: handleChange
+      onChange: handleChange,
+      viewMonth: viewMonth,
+      onMonthChange: setViewMonth
     }),
     meses: /*#__PURE__*/React.createElement(Meses, {
-      data: data
+      data: data,
+      viewMonth: viewMonth,
+      onMonthChange: setViewMonth
     })
   };
   if (!auth) return /*#__PURE__*/React.createElement(Login, {
