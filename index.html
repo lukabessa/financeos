@@ -181,6 +181,46 @@ const beep = () => {
     osc.stop(ctx.currentTime + 0.35);
   } catch {}
 };
+
+// ── CLOUD SYNC (JSONBin.io) ──────────────────────────────────────────────
+const SYNC_KEY = 'financeos_sync';
+const JBIN = 'https://api.jsonbin.io/v3/b';
+const loadSyncCfg = () => {
+  try {
+    return JSON.parse(localStorage.getItem(SYNC_KEY)) || {};
+  } catch {
+    return {};
+  }
+};
+const saveSyncCfg = c => localStorage.setItem(SYNC_KEY, JSON.stringify(c));
+const cloudPull = async (binId, apiKey) => {
+  const r = await fetch(`${JBIN}/${binId}/latest`, {
+    headers: {
+      'X-Master-Key': apiKey,
+      'X-Bin-Meta': 'false'
+    }
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+};
+const cloudPush = async (binId, apiKey, data) => {
+  const r = await fetch(`${JBIN}/${binId}`, {
+    method: 'PUT',
+    headers: {
+      'X-Master-Key': apiKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+};
+const debounce = (fn, ms) => {
+  let t;
+  return (...a) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...a), ms);
+  };
+};
 const KEY = 'financeos_v1';
 const DEF = {
   config: {
@@ -1991,15 +2031,25 @@ const Config = ({
   open,
   onClose,
   data,
-  onChange
+  onChange,
+  syncCfg,
+  onSyncCfg,
+  syncSt,
+  onSyncNow
 }) => {
   const [f, setF] = useState({});
+  const [sc, setSc] = useState({});
   useEffect(() => {
-    if (open) setF({
-      ...data.config
-    });
-  }, [open, data.config]);
-  const save = () => {
+    if (open) {
+      setF({
+        ...data.config
+      });
+      setSc({
+        ...syncCfg
+      });
+    }
+  }, [open, data.config, syncCfg]);
+  const saveAll = () => {
     onChange({
       ...data,
       config: {
@@ -2008,6 +2058,7 @@ const Config = ({
         rendaMensal: +f.rendaMensal || 0
       }
     });
+    onSyncCfg(sc);
     onClose();
   };
   const exportar = () => {
@@ -2049,12 +2100,24 @@ const Config = ({
     });
     onClose();
   };
+  const stLabel = {
+    idle: '—',
+    syncing: 'Sincronizando…',
+    synced: 'Sincronizado ✓',
+    error: 'Erro na sincronização ✗'
+  };
+  const stColor = {
+    idle: C.muted,
+    syncing: C.amber,
+    synced: C.green,
+    error: C.red
+  };
   return /*#__PURE__*/React.createElement(Modal, {
     open: open,
     onClose: onClose,
     title: "Configura\xE7\xF5es",
-    onSave: save,
-    saveLabel: "Salvar configura\xE7\xF5es"
+    onSave: saveAll,
+    saveLabel: "Salvar"
   }, /*#__PURE__*/React.createElement(Field, {
     label: "Renda mensal R$"
   }, /*#__PURE__*/React.createElement(Inp, {
@@ -2075,6 +2138,128 @@ const Config = ({
       mesAtual: e.target.value
     }))
   })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: C.border,
+      margin: '16px 0'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: C.text
+    }
+  }, "Sincroniza\xE7\xE3o em Nuvem"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 2
+    }
+  }, "JSONBin.io \u2014 dados em todos os dispositivos")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSc(s => ({
+      ...s,
+      enabled: !s.enabled
+    })),
+    style: {
+      width: 44,
+      height: 24,
+      borderRadius: 12,
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'background .2s',
+      background: sc.enabled ? C.green : C.border,
+      position: 'relative',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      top: 3,
+      left: sc.enabled ? 23 : 3,
+      width: 18,
+      height: 18,
+      borderRadius: '50%',
+      background: '#fff',
+      transition: 'left .2s'
+    }
+  }))), sc.enabled && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Master Key (API Key)"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    value: sc.apiKey || '',
+    onChange: e => setSc(s => ({
+      ...s,
+      apiKey: e.target.value
+    })),
+    placeholder: "$2a$10$..."
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Bin ID"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    value: sc.binId || '',
+    onChange: e => setSc(s => ({
+      ...s,
+      binId: e.target.value
+    })),
+    placeholder: "64abc123..."
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '8px 12px',
+      background: C.elevated,
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: stColor[syncSt] || C.muted
+    }
+  }, stLabel[syncSt] || '—'), /*#__PURE__*/React.createElement("button", {
+    onClick: onSyncNow,
+    style: {
+      ...btn(),
+      padding: '5px 12px',
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement(LR.RefreshCw, {
+    size: 12
+  }), "Sincronizar agora")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      lineHeight: 1.6,
+      padding: '8px 12px',
+      background: C.elevated,
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: C.text
+    }
+  }, "Como configurar:"), /*#__PURE__*/React.createElement("br", null), "1. Acesse ", /*#__PURE__*/React.createElement("strong", null, "jsonbin.io"), " e crie conta gratuita", /*#__PURE__*/React.createElement("br", null), "2. V\xE1 em ", /*#__PURE__*/React.createElement("strong", null, "API Keys"), " \u2192 crie uma Master Key", /*#__PURE__*/React.createElement("br", null), "3. V\xE1 em ", /*#__PURE__*/React.createElement("strong", null, "Bins"), " \u2192 New Bin \u2192 cole ", /*#__PURE__*/React.createElement("code", {
+    style: {
+      background: C.border,
+      padding: '1px 4px',
+      borderRadius: 3
+    }
+  }, '{}'), " \u2192 Create", /*#__PURE__*/React.createElement("br", null), "4. Cole a Key e o ID acima e salve"))), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
       background: C.border,
@@ -2348,7 +2533,8 @@ const Sidebar = ({
   view,
   setView,
   onCfg,
-  mobile
+  mobile,
+  syncDot
 }) => {
   if (mobile) return /*#__PURE__*/React.createElement("nav", {
     style: {
@@ -2402,10 +2588,21 @@ const Sidebar = ({
       padding: '4px 10px',
       color: C.muted,
       fontSize: 9,
-      fontFamily: 'DM Sans'
+      fontFamily: 'DM Sans',
+      position: 'relative'
     }
   }, /*#__PURE__*/React.createElement(LR.Settings, {
     size: 20
+  }), syncDot && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      top: 4,
+      right: 8,
+      width: 7,
+      height: 7,
+      borderRadius: '50%',
+      background: syncDot
+    }
   }), /*#__PURE__*/React.createElement("span", null, "Config.")));
   return /*#__PURE__*/React.createElement("aside", {
     style: {
@@ -2488,11 +2685,21 @@ const Sidebar = ({
       cursor: 'pointer',
       fontSize: 14,
       fontFamily: 'DM Sans',
-      textAlign: 'left'
+      textAlign: 'left',
+      position: 'relative'
     }
   }, /*#__PURE__*/React.createElement(LR.Settings, {
     size: 17
-  }), "Configura\xE7\xF5es"));
+  }), "Configura\xE7\xF5es", syncDot && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 'auto',
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: syncDot,
+      flexShrink: 0
+    }
+  })));
 };
 
 // ── LOGIN ────────────────────────────────────────────────────────────────
@@ -2647,15 +2854,46 @@ const App = () => {
   const [view, setView] = useState('dashboard');
   const [cfgOpen, setCfg] = useState(false);
   const [mobile, setMob] = useState(window.innerWidth < 768);
+  const [syncCfg, setSyncC] = useState(loadSyncCfg);
+  const [syncSt, setSyncSt] = useState('idle'); // 'idle'|'syncing'|'synced'|'error'
+
   useEffect(() => {
     const h = () => setMob(window.innerWidth < 768);
     window.addEventListener('resize', h);
     return () => window.removeEventListener('resize', h);
   }, []);
+  const doPush = useCallback(debounce(async (d, cfg) => {
+    if (!cfg.enabled || !cfg.binId || !cfg.apiKey) return;
+    setSyncSt('syncing');
+    try {
+      await cloudPush(cfg.binId, cfg.apiKey, d);
+      setSyncSt('synced');
+    } catch {
+      setSyncSt('error');
+    }
+  }, 3000), []);
   const handleChange = useCallback(d => {
     setData(d);
     save(d);
-  }, []);
+    doPush(d, syncCfg);
+  }, [syncCfg]);
+
+  // Ao autenticar, puxa dados da nuvem se sync ativo
+  useEffect(() => {
+    if (!auth || !syncCfg.enabled || !syncCfg.binId || !syncCfg.apiKey) return;
+    setSyncSt('syncing');
+    cloudPull(syncCfg.binId, syncCfg.apiKey).then(d => {
+      setData({
+        ...DEF,
+        ...d
+      });
+      save({
+        ...DEF,
+        ...d
+      });
+      setSyncSt('synced');
+    }).catch(() => setSyncSt('error'));
+  }, [auth]);
   useEffect(() => {
     const cur = getMes();
     setData(prev => {
@@ -2729,6 +2967,7 @@ const App = () => {
   if (!auth) return /*#__PURE__*/React.createElement(Login, {
     onLogin: () => setAuth(true)
   });
+  const syncDot = syncSt === 'syncing' ? C.amber : syncSt === 'synced' ? C.green : syncSt === 'error' ? C.red : null;
   return /*#__PURE__*/React.createElement(MobileCtx.Provider, {
     value: mobile
   }, /*#__PURE__*/React.createElement("div", {
@@ -2742,7 +2981,8 @@ const App = () => {
     view: view,
     setView: setView,
     onCfg: () => setCfg(true),
-    mobile: mobile
+    mobile: mobile,
+    syncDot: syncDot
   }), /*#__PURE__*/React.createElement("main", {
     style: {
       flex: 1,
@@ -2753,7 +2993,23 @@ const App = () => {
     open: cfgOpen,
     onClose: () => setCfg(false),
     data: data,
-    onChange: handleChange
+    onChange: handleChange,
+    syncCfg: syncCfg,
+    onSyncCfg: cfg => {
+      setSyncC(cfg);
+      saveSyncCfg(cfg);
+    },
+    syncSt: syncSt,
+    onSyncNow: async () => {
+      if (!syncCfg.enabled || !syncCfg.binId || !syncCfg.apiKey) return;
+      setSyncSt('syncing');
+      try {
+        await cloudPush(syncCfg.binId, syncCfg.apiKey, data);
+        setSyncSt('synced');
+      } catch {
+        setSyncSt('error');
+      }
+    }
   })));
 };
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));</script>
