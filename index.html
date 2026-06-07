@@ -2647,9 +2647,6 @@ const App = () => {
   const [view, setView] = useState('dashboard');
   const [cfgOpen, setCfg] = useState(false);
   const [mobile, setMob] = useState(window.innerWidth < 768);
-  if (!auth) return /*#__PURE__*/React.createElement(Login, {
-    onLogin: () => setAuth(true)
-  });
   useEffect(() => {
     const h = () => setMob(window.innerWidth < 768);
     window.addEventListener('resize', h);
@@ -2729,6 +2726,9 @@ const App = () => {
       data: data
     })
   };
+  if (!auth) return /*#__PURE__*/React.createElement(Login, {
+    onLogin: () => setAuth(true)
+  });
   return /*#__PURE__*/React.createElement(MobileCtx.Provider, {
     value: mobile
   }, /*#__PURE__*/React.createElement("div", {
