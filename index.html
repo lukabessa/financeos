@@ -1,0 +1,2570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinanceOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="financeos-libs/react.min.js"></script>
+<script src="financeos-libs/react-dom.min.js"></script>
+<script src="financeos-libs/prop-types.min.js"></script>
+<script src="financeos-libs/recharts.js"></script>
+<script>
+// Inline SVG icons — sem dependência do Lucide
+(function(){
+  var R = window.React;
+  function mkIcon(paths){
+    return function Icon(props){
+      var sz=props&&props.size||16, col=props&&props.color||'currentColor', sw=props&&props.strokeWidth||2;
+      var rest={};
+      if(props) for(var k in props) if(k!=='size'&&k!=='color'&&k!=='strokeWidth') rest[k]=props[k];
+      return R.createElement('svg',Object.assign({xmlns:'http://www.w3.org/2000/svg',width:sz,height:sz,viewBox:'0 0 24 24',fill:'none',stroke:col,strokeWidth:sw,strokeLinecap:'round',strokeLinejoin:'round'},rest),
+        paths.map(function(p,i){return R.createElement(p[0],Object.assign({key:i},p[1]));})
+      );
+    };
+  }
+  window.LucideReact={
+    X:mkIcon([['line',{x1:18,y1:6,x2:6,y2:18}],['line',{x1:6,y1:6,x2:18,y2:18}]]),
+    Check:mkIcon([['polyline',{points:'20 6 9 17 4 12'}]]),
+    Trash2:mkIcon([['polyline',{points:'3 6 5 6 21 6'}],['path',{d:'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'}],['line',{x1:10,y1:11,x2:10,y2:17}],['line',{x1:14,y1:11,x2:14,y2:17}]]),
+    TrendingUp:mkIcon([['polyline',{points:'23 6 13.5 15.5 8.5 10.5 1 18'}],['polyline',{points:'17 6 23 6 23 12'}]]),
+    CheckCircle:mkIcon([['path',{d:'M22 11.08V12a10 10 0 1 1-5.93-9.14'}],['polyline',{points:'22 4 12 14.01 9 11.01'}]]),
+    Clock:mkIcon([['circle',{cx:12,cy:12,r:10}],['polyline',{points:'12 6 12 12 16 14'}]]),
+    Wallet:mkIcon([['path',{d:'M21 12V7H5a2 2 0 0 1 0-4h14v4'}],['path',{d:'M3 5v14a2 2 0 0 0 2 2h16v-5'}],['path',{d:'M18 12a2 2 0 0 0 0 4h4v-4Z'}]]),
+    LayoutDashboard:mkIcon([['rect',{width:7,height:9,x:3,y:3,rx:1}],['rect',{width:7,height:5,x:14,y:3,rx:1}],['rect',{width:7,height:9,x:14,y:12,rx:1}],['rect',{width:7,height:5,x:3,y:16,rx:1}]]),
+    Receipt:mkIcon([['path',{d:'M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z'}],['path',{d:'M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8'}],['path',{d:'M12 17.5v-11'}]]),
+    CreditCard:mkIcon([['rect',{width:22,height:16,x:1,y:4,rx:2,ry:2}],['line',{x1:1,y1:10,x2:23,y2:10}]]),
+    Layers:mkIcon([['polygon',{points:'12 2 2 7 12 12 22 7 12 2'}],['polyline',{points:'2 17 12 22 22 17'}],['polyline',{points:'2 12 12 17 22 12'}]]),
+    Settings:mkIcon([['path',{d:'M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'}],['circle',{cx:12,cy:12,r:3}]]),
+    Plus:mkIcon([['line',{x1:12,y1:5,x2:12,y2:19}],['line',{x1:5,y1:12,x2:19,y2:12}]]),
+    Pencil:mkIcon([['path',{d:'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'}],['path',{d:'m15 5 4 4'}]]),
+    Download:mkIcon([['path',{d:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}],['polyline',{points:'7 10 12 15 17 10'}],['line',{x1:12,y1:15,x2:12,y2:3}]]),
+    Upload:mkIcon([['path',{d:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'}],['polyline',{points:'17 8 12 3 7 8'}],['line',{x1:12,y1:3,x2:12,y2:15}]]),
+    RefreshCw:mkIcon([['path',{d:'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8'}],['path',{d:'M21 3v5h-5'}],['path',{d:'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16'}],['path',{d:'M8 16H3v5'}]]),
+    CalendarDays:mkIcon([['path',{d:'M8 2v4'}],['path',{d:'M16 2v4'}],['rect',{width:18,height:18,x:3,y:4,rx:2}],['path',{d:'M3 10h18'}],['path',{d:'M8 14h.01'}],['path',{d:'M12 14h.01'}],['path',{d:'M16 14h.01'}],['path',{d:'M8 18h.01'}],['path',{d:'M12 18h.01'}],['path',{d:'M16 18h.01'}]])
+  };
+})();
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0A0A0F}
+body{color:#F0F0F8;font-family:'DM Sans',sans-serif;overflow:hidden}
+#root{height:100%}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2A2A3A;border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:#00D084}
+input,select,textarea,button{font-family:'DM Sans',sans-serif}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes checkPop{0%{transform:scale(0.8)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.page-enter{animation:fadeIn .25s ease-out}
+.modal-slide{animation:slideInRight .28s cubic-bezier(0.16,1,0.3,1)}
+.check-pop{animation:checkPop .3s ease-out}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="errdisplay" style="display:none;position:fixed;inset:0;background:#0A0A0F;color:#FF4757;font-family:monospace;font-size:13px;padding:32px;z-index:9999;white-space:pre-wrap;overflow:auto"></div>
+<script>
+window.addEventListener('error', function(e){
+  var d = document.getElementById('errdisplay');
+  d.style.display = 'block';
+  d.textContent += '❌ ' + e.message + '\n   em: ' + e.filename + ':' + e.lineno + '\n\n';
+});
+window.addEventListener('unhandledrejection', function(e){
+  var d = document.getElementById('errdisplay');
+  d.style.display = 'block';
+  d.textContent += '❌ Promise: ' + e.reason + '\n\n';
+});
+// Verifica se dependências carregaram
+window.addEventListener('load', function(){
+  var missing = [];
+  if(!window.React) missing.push('React');
+  if(!window.ReactDOM) missing.push('ReactDOM');
+  if(!window.Recharts) missing.push('Recharts');
+  if(!window.LucideReact) missing.push('LucideReact');
+  if(missing.length){
+    var d = document.getElementById('errdisplay');
+    d.style.display = 'block';
+    d.textContent += '⚠️ Scripts não carregaram: ' + missing.join(', ') + '\n\nVerifique sua conexão com a internet.\n';
+  }
+});
+</script>
+<script>function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+const {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback
+} = React;
+const {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} = Recharts;
+const LR = window.LucideReact || {};
+const C = {
+  bg: '#0A0A0F',
+  surface: '#12121A',
+  elevated: '#1A1A26',
+  border: '#2A2A3A',
+  green: '#00D084',
+  amber: '#F5A623',
+  red: '#FF4757',
+  blue: '#3B82F6',
+  text: '#F0F0F8',
+  muted: '#8888AA'
+};
+const CATEGORIAS = ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Assinatura', 'Lazer', 'Outros'];
+const METODOS = ['Pix', 'Débito', 'Boleto', 'Cartão de crédito'];
+const CAT_COLORS = {
+  'Moradia': '#3B82F6',
+  'Alimentação': '#F59E0B',
+  'Transporte': '#8B5CF6',
+  'Saúde': '#10B981',
+  'Assinatura': '#EC4899',
+  'Lazer': '#F97316',
+  'Outros': '#6B7280'
+};
+const uid = () => crypto.randomUUID();
+const fmt = v => new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL'
+}).format(v || 0);
+const fmtP = v => `${(v || 0).toFixed(1)}%`;
+const getMes = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const mesLabel = m => {
+  if (!m) return '';
+  const [y, mo] = m.split('-');
+  const ns = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  return `${ns[parseInt(mo) - 1]}/${y.slice(2)}`;
+};
+const ultimos6 = () => {
+  const r = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    r.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return r;
+};
+const beep = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.12);
+    g.gain.setValueAtTime(0.08, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {}
+};
+const KEY = 'financeos_v1';
+const DEF = {
+  config: {
+    rendaMensal: 5000,
+    mesAtual: getMes()
+  },
+  despesasFixas: [],
+  cartoes: [],
+  parcelas: [],
+  historicoMensal: {}
+};
+const load = () => {
+  try {
+    const r = localStorage.getItem(KEY);
+    return r ? {
+      ...DEF,
+      ...JSON.parse(r)
+    } : DEF;
+  } catch {
+    return DEF;
+  }
+};
+const save = d => {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(d));
+  } catch {}
+};
+const card = (extra = {}) => ({
+  background: C.surface,
+  border: `1px solid ${C.border}`,
+  borderRadius: 12,
+  padding: 20,
+  ...extra
+});
+const btn = (variant = 'default') => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '8px 16px',
+  borderRadius: 8,
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: 14,
+  fontWeight: 500,
+  transition: 'opacity .15s',
+  ...(variant === 'primary' ? {
+    background: C.green,
+    color: '#0A0A0F'
+  } : variant === 'danger' ? {
+    background: C.red,
+    color: '#fff'
+  } : variant === 'ghost' ? {
+    background: 'transparent',
+    color: C.muted,
+    border: `1px solid ${C.border}`
+  } : {
+    background: C.elevated,
+    color: C.text
+  })
+});
+const inputStyle = err => ({
+  width: '100%',
+  background: C.elevated,
+  border: `1px solid ${err ? C.red : C.border}`,
+  borderRadius: 8,
+  padding: '10px 12px',
+  color: C.text,
+  fontSize: 14,
+  outline: 'none'
+});
+const Label = ({
+  children
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    fontSize: 11,
+    color: C.muted,
+    marginBottom: 5,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '.05em'
+  }
+}, children);
+const Field = ({
+  label,
+  error,
+  children
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    marginBottom: 14
+  }
+}, /*#__PURE__*/React.createElement(Label, null, label), children, error && /*#__PURE__*/React.createElement("div", {
+  style: {
+    fontSize: 11,
+    color: C.red,
+    marginTop: 3
+  }
+}, error));
+const Inp = ({
+  err,
+  ...p
+}) => /*#__PURE__*/React.createElement("input", _extends({
+  style: inputStyle(err)
+}, p));
+const Sel = ({
+  err,
+  children,
+  ...p
+}) => /*#__PURE__*/React.createElement("select", _extends({
+  style: {
+    ...inputStyle(err),
+    appearance: 'none'
+  }
+}, p), children);
+const Tex = ({
+  err,
+  ...p
+}) => /*#__PURE__*/React.createElement("textarea", _extends({
+  style: {
+    ...inputStyle(err),
+    resize: 'vertical',
+    minHeight: 72
+  }
+}, p));
+const Badge = ({
+  children,
+  color = C.green
+}) => /*#__PURE__*/React.createElement("span", {
+  style: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
+    padding: '2px 8px',
+    borderRadius: 20,
+    fontSize: 11,
+    fontWeight: 700,
+    background: color + '22',
+    color,
+    border: `1px solid ${color}44`
+  }
+}, children);
+const ProgBar = ({
+  pct,
+  color = C.green
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    height: 6,
+    background: C.border,
+    borderRadius: 3,
+    overflow: 'hidden'
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  style: {
+    height: '100%',
+    width: `${Math.min(pct, 100)}%`,
+    background: pct > 80 ? C.red : pct > 60 ? C.amber : color,
+    borderRadius: 3,
+    transition: 'width .5s ease'
+  }
+}));
+const ChartTip = ({
+  active,
+  payload,
+  label
+}) => {
+  if (!active || !payload?.length) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: C.elevated,
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      padding: '8px 12px'
+    }
+  }, label && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginBottom: 4
+    }
+  }, label), payload.map((p, i) => /*#__PURE__*/React.createElement("p", {
+    key: i,
+    style: {
+      fontSize: 13,
+      color: p.color || C.text,
+      fontWeight: 600
+    }
+  }, p.name, ": ", fmt(p.value))));
+};
+const Modal = ({
+  open,
+  onClose,
+  title,
+  onSave,
+  onDelete,
+  saveLabel = 'Salvar',
+  children
+}) => {
+  useEffect(() => {
+    const h = e => e.key === 'Escape' && onClose();
+    if (open) window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [open, onClose]);
+  if (!open) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.target === e.currentTarget && onClose(),
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 1000,
+      background: 'rgba(0,0,0,.72)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "modal-slide",
+    style: {
+      width: '100%',
+      maxWidth: 480,
+      background: C.surface,
+      borderLeft: `1px solid ${C.border}`,
+      height: '100%',
+      overflowY: 'auto',
+      padding: 24,
+      display: 'flex',
+      flexDirection: 'column'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 20,
+      fontWeight: 700
+    }
+  }, title), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      ...btn('ghost'),
+      padding: '5px 9px',
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement(LR.X, {
+    size: 15
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, children), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onSave,
+    style: {
+      ...btn('primary'),
+      justifyContent: 'center',
+      padding: 12
+    }
+  }, /*#__PURE__*/React.createElement(LR.Check, {
+    size: 15
+  }), saveLabel), onDelete && /*#__PURE__*/React.createElement("button", {
+    onClick: onDelete,
+    style: {
+      ...btn('danger'),
+      justifyContent: 'center',
+      padding: 12
+    }
+  }, /*#__PURE__*/React.createElement(LR.Trash2, {
+    size: 15
+  }), "Excluir"), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    style: {
+      ...btn('ghost'),
+      justifyContent: 'center',
+      padding: 12
+    }
+  }, "Cancelar"))));
+};
+const Stat = ({
+  label,
+  value,
+  Icon,
+  color = C.green,
+  sub
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    ...card(),
+    borderTop: `2px solid ${color}`
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  style: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: 8
+  }
+}, /*#__PURE__*/React.createElement("span", {
+  style: {
+    fontSize: 11,
+    color: C.muted,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '.05em'
+  }
+}, label), Icon && /*#__PURE__*/React.createElement(Icon, {
+  size: 15,
+  color: color,
+  style: {
+    opacity: .7
+  }
+})), /*#__PURE__*/React.createElement("div", {
+  style: {
+    fontFamily: 'Syne',
+    fontSize: 24,
+    fontWeight: 800
+  }
+}, value), sub && /*#__PURE__*/React.createElement("div", {
+  style: {
+    fontSize: 12,
+    color: C.muted,
+    marginTop: 4
+  }
+}, sub));
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────
+const Dashboard = ({
+  data
+}) => {
+  const {
+    despesasFixas,
+    cartoes,
+    parcelas,
+    config,
+    historicoMensal
+  } = data;
+  const mes = config.mesAtual || getMes();
+  const totalFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
+  const pagoFixas = useMemo(() => despesasFixas.filter(d => d.pago).reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
+  const totalCartoes = useMemo(() => cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [cartoes, mes]);
+  const pagoCartoes = useMemo(() => cartoes.reduce((s, c) => {
+    const f = c.faturas?.[mes];
+    return s + (f?.pago ? f?.valor || 0 : 0);
+  }, 0), [cartoes, mes]);
+  const totalParc = useMemo(() => parcelas.filter(p => p.status === 'ativa').reduce((s, p) => s + (p.valorParcela || 0), 0), [parcelas]);
+  const totalMes = totalFixas + totalCartoes + totalParc;
+  const totalPago = pagoFixas + pagoCartoes;
+  const aPagar = Math.max(totalMes - totalPago, 0);
+  const pctComp = config.rendaMensal > 0 ? totalMes / config.rendaMensal * 100 : 0;
+  const donut = [{
+    name: 'Pago',
+    value: totalPago
+  }, {
+    name: 'A Pagar',
+    value: aPagar
+  }];
+  const barDat = useMemo(() => {
+    const m = {};
+    despesasFixas.forEach(d => {
+      m[d.categoria] = (m[d.categoria] || 0) + (d.valor || 0);
+    });
+    return Object.entries(m).map(([c, v]) => ({
+      cat: c,
+      val: v
+    }));
+  }, [despesasFixas]);
+  const lineDat = useMemo(() => ultimos6().map(m => ({
+    mes: mesLabel(m),
+    total: historicoMensal[m]?.total || 0,
+    pago: historicoMensal[m]?.pago || 0
+  })), [historicoMensal]);
+  const hoje = new Date();
+  const dHoje = hoje.getDate();
+  const proximos = useMemo(() => despesasFixas.filter(d => !d.pago).map(d => ({
+    ...d,
+    diff: d.diaVencimento - dHoje
+  })).filter(d => d.diff >= -3 && d.diff <= 7).sort((a, b) => a.diff - b.diff), [despesasFixas, dHoje]);
+  const vBadge = diff => diff < 0 ? {
+    l: 'Atrasado',
+    c: C.red
+  } : diff === 0 ? {
+    l: 'Vence hoje',
+    c: C.amber
+  } : diff <= 3 ? {
+    l: `${diff}d`,
+    c: '#F97316'
+  } : {
+    l: `${diff}d`,
+    c: C.green
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-enter",
+    style: {
+      padding: 24,
+      overflowY: 'auto',
+      height: '100%'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 28,
+      fontWeight: 800
+    }
+  }, "Dashboard ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.muted,
+      fontSize: 16,
+      fontWeight: 400
+    }
+  }, mesLabel(mes)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
+      gap: 14,
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Total do M\xEAs",
+    value: fmt(totalMes),
+    Icon: LR.TrendingUp,
+    color: C.blue
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "J\xE1 Pago",
+    value: fmt(totalPago),
+    Icon: LR.CheckCircle,
+    color: C.green
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "A Pagar",
+    value: fmt(aPagar),
+    Icon: LR.Clock,
+    color: C.amber
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Comprometido",
+    value: fmtP(pctComp),
+    Icon: LR.Wallet,
+    color: pctComp > 80 ? C.red : C.green,
+    sub: `Renda: ${fmt(config.rendaMensal)}`
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 14,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: card()
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.muted,
+      marginBottom: 12,
+      textTransform: 'uppercase'
+    }
+  }, "Pago vs. A Pagar"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 180
+  }, /*#__PURE__*/React.createElement(PieChart, null, /*#__PURE__*/React.createElement(Pie, {
+    data: donut,
+    cx: "50%",
+    cy: "50%",
+    innerRadius: 48,
+    outerRadius: 76,
+    dataKey: "value",
+    paddingAngle: 5
+  }, /*#__PURE__*/React.createElement(Cell, {
+    fill: C.green
+  }), /*#__PURE__*/React.createElement(Cell, {
+    fill: C.border
+  })), /*#__PURE__*/React.createElement(Tooltip, {
+    content: /*#__PURE__*/React.createElement(ChartTip, null)
+  }), /*#__PURE__*/React.createElement(Legend, {
+    formatter: v => /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.text,
+        fontSize: 12
+      }
+    }, v)
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: card()
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.muted,
+      marginBottom: 12,
+      textTransform: 'uppercase'
+    }
+  }, "Por Categoria"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 180
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: barDat,
+    margin: {
+      top: 0,
+      right: 0,
+      left: -24,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: C.border
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "cat",
+    tick: {
+      fontSize: 9,
+      fill: C.muted
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    tick: {
+      fontSize: 9,
+      fill: C.muted
+    }
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    content: /*#__PURE__*/React.createElement(ChartTip, null)
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "val",
+    name: "Valor",
+    radius: [4, 4, 0, 0]
+  }, barDat.map((d, i) => /*#__PURE__*/React.createElement(Cell, {
+    key: i,
+    fill: CAT_COLORS[d.cat] || C.blue
+  }))))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.muted,
+      marginBottom: 12,
+      textTransform: 'uppercase'
+    }
+  }, "Hist\xF3rico 6 Meses"), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 200
+  }, /*#__PURE__*/React.createElement(LineChart, {
+    data: lineDat,
+    margin: {
+      top: 0,
+      right: 20,
+      left: -24,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: C.border
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "mes",
+    tick: {
+      fontSize: 11,
+      fill: C.muted
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    tick: {
+      fontSize: 11,
+      fill: C.muted
+    }
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    content: /*#__PURE__*/React.createElement(ChartTip, null)
+  }), /*#__PURE__*/React.createElement(Legend, {
+    formatter: v => /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: C.text,
+        fontSize: 12
+      }
+    }, v)
+  }), /*#__PURE__*/React.createElement(Line, {
+    type: "monotone",
+    dataKey: "total",
+    name: "Total",
+    stroke: C.amber,
+    strokeWidth: 2,
+    dot: {
+      fill: C.amber,
+      r: 4
+    }
+  }), /*#__PURE__*/React.createElement(Line, {
+    type: "monotone",
+    dataKey: "pago",
+    name: "Pago",
+    stroke: C.green,
+    strokeWidth: 2,
+    dot: {
+      fill: C.green,
+      r: 4
+    }
+  })))), proximos.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: card()
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.muted,
+      marginBottom: 12,
+      textTransform: 'uppercase'
+    }
+  }, "Vencimentos Pr\xF3ximos"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, proximos.map(d => {
+    const b = vBadge(d.diff);
+    return /*#__PURE__*/React.createElement("div", {
+      key: d.id,
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 14px',
+        background: C.elevated,
+        borderRadius: 8,
+        border: `1px solid ${C.border}`
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 500
+      }
+    }, d.nome), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted
+      }
+    }, "Dia ", d.diaVencimento, " \xB7 ", d.categoria)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: b.c
+    }, b.l), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: 'Syne',
+        fontWeight: 700
+      }
+    }, fmt(d.valor))));
+  }))));
+};
+
+// ── DESPESAS FIXAS ───────────────────────────────────────────────────────
+const DespesasFixas = ({
+  data,
+  onChange
+}) => {
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState(null);
+  const [form, setForm] = useState({});
+  const [errs, setErrs] = useState({});
+  const [filtro, setFiltro] = useState('Todos');
+  const [catFil, setCatFil] = useState('');
+  const [ordem, setOrdem] = useState('vencimento');
+  const F = k => v => setForm(f => ({
+    ...f,
+    [k]: v
+  }));
+  const openAdd = () => {
+    setEdit(null);
+    setForm({
+      nome: '',
+      categoria: 'Moradia',
+      valor: '',
+      diaVencimento: '',
+      metodoPagamento: 'Pix',
+      observacao: ''
+    });
+    setErrs({});
+    setOpen(true);
+  };
+  const openEdit = item => {
+    setEdit(item);
+    setForm({
+      ...item,
+      valor: String(item.valor)
+    });
+    setErrs({});
+    setOpen(true);
+  };
+  const validate = () => {
+    const e = {};
+    if (!form.nome?.trim()) e.nome = 'Obrigatório';
+    if (!form.valor || isNaN(+form.valor)) e.valor = 'Valor inválido';
+    if (!form.diaVencimento || isNaN(+form.diaVencimento)) e.diaVencimento = 'Dia inválido';
+    setErrs(e);
+    return !Object.keys(e).length;
+  };
+  const handleSave = () => {
+    if (!validate()) return;
+    const item = {
+      ...form,
+      valor: +form.valor,
+      diaVencimento: +form.diaVencimento,
+      pago: edit?.pago || false,
+      id: edit?.id || uid()
+    };
+    const list = edit ? data.despesasFixas.map(d => d.id === edit.id ? item : d) : [...data.despesasFixas, item];
+    onChange({
+      ...data,
+      despesasFixas: list
+    });
+    setOpen(false);
+  };
+  const handleDel = () => {
+    onChange({
+      ...data,
+      despesasFixas: data.despesasFixas.filter(d => d.id !== edit.id)
+    });
+    setOpen(false);
+  };
+  const togglePago = id => {
+    const list = data.despesasFixas.map(d => {
+      if (d.id !== id) return d;
+      if (!d.pago) beep();
+      return {
+        ...d,
+        pago: !d.pago
+      };
+    });
+    onChange({
+      ...data,
+      despesasFixas: list
+    });
+  };
+  const filtered = useMemo(() => {
+    let l = [...data.despesasFixas];
+    if (filtro === 'Pagos') l = l.filter(d => d.pago);
+    if (filtro === 'Pendentes') l = l.filter(d => !d.pago);
+    if (catFil) l = l.filter(d => d.categoria === catFil);
+    if (ordem === 'vencimento') l.sort((a, b) => a.diaVencimento - b.diaVencimento);
+    if (ordem === 'valor') l.sort((a, b) => b.valor - a.valor);
+    if (ordem === 'nome') l.sort((a, b) => a.nome.localeCompare(b.nome));
+    return l;
+  }, [data.despesasFixas, filtro, catFil, ordem]);
+  const total = useMemo(() => filtered.reduce((s, d) => s + d.valor, 0), [filtered]);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-enter",
+    style: {
+      padding: 24,
+      overflowY: 'auto',
+      height: '100%'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 20,
+      flexWrap: 'wrap',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 28,
+      fontWeight: 800
+    }
+  }, "Despesas Fixas"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: C.muted,
+      fontSize: 13,
+      marginTop: 4
+    }
+  }, fmt(total), " \xB7 ", filtered.length, " item", filtered.length !== 1 ? 's' : '')), /*#__PURE__*/React.createElement("button", {
+    onClick: openAdd,
+    style: btn('primary')
+  }, /*#__PURE__*/React.createElement(LR.Plus, {
+    size: 15
+  }), "Adicionar")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 14,
+      flexWrap: 'wrap'
+    }
+  }, ['Todos', 'Pagos', 'Pendentes'].map(f => /*#__PURE__*/React.createElement("button", {
+    key: f,
+    onClick: () => setFiltro(f),
+    style: {
+      ...btn(filtro === f ? 'primary' : 'ghost'),
+      padding: '6px 14px',
+      fontSize: 13
+    }
+  }, f)), /*#__PURE__*/React.createElement("select", {
+    value: catFil,
+    onChange: e => setCatFil(e.target.value),
+    style: {
+      ...inputStyle(false),
+      width: 'auto',
+      padding: '6px 12px',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todas categorias"), CATEGORIAS.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c
+  }, c))), /*#__PURE__*/React.createElement("select", {
+    value: ordem,
+    onChange: e => setOrdem(e.target.value),
+    style: {
+      ...inputStyle(false),
+      width: 'auto',
+      padding: '6px 12px',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "vencimento"
+  }, "\u2195 Vencimento"), /*#__PURE__*/React.createElement("option", {
+    value: "valor"
+  }, "\u2195 Valor"), /*#__PURE__*/React.createElement("option", {
+    value: "nome"
+  }, "\u2195 Nome"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      textAlign: 'center',
+      padding: 40,
+      color: C.muted
+    }
+  }, "Nenhuma despesa encontrada") : filtered.map(item => /*#__PURE__*/React.createElement("div", {
+    key: item.id,
+    style: {
+      ...card(),
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      opacity: item.pago ? .65 : 1,
+      borderLeft: `3px solid ${CAT_COLORS[item.categoria] || C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => togglePago(item.id),
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: '50%',
+      border: `2px solid ${item.pago ? C.green : C.border}`,
+      background: item.pago ? C.green : 'transparent',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'all .2s'
+    }
+  }, item.pago && /*#__PURE__*/React.createElement(LR.Check, {
+    size: 13,
+    color: "#0A0A0F",
+    strokeWidth: 3
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 500,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap'
+    }
+  }, item.nome, item.pago && /*#__PURE__*/React.createElement(Badge, {
+    color: C.green
+  }, "Pago")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 2
+    }
+  }, item.categoria, " \xB7 Dia ", item.diaVencimento, " \xB7 ", item.metodoPagamento), item.observacao && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 1,
+      fontStyle: 'italic'
+    }
+  }, item.observacao)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 17,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, fmt(item.valor)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openEdit(item),
+    style: {
+      ...btn('ghost'),
+      padding: '5px 8px',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(LR.Pencil, {
+    size: 13
+  }))))), /*#__PURE__*/React.createElement(Modal, {
+    open: open,
+    onClose: () => setOpen(false),
+    title: edit ? 'Editar Despesa' : 'Nova Despesa',
+    onSave: handleSave,
+    onDelete: edit ? handleDel : null
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nome",
+    error: errs.nome
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.nome,
+    value: form.nome || '',
+    onChange: e => F('nome')(e.target.value),
+    placeholder: "Ex: Aluguel"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Categoria"
+  }, /*#__PURE__*/React.createElement(Sel, {
+    value: form.categoria || 'Moradia',
+    onChange: e => F('categoria')(e.target.value)
+  }, CATEGORIAS.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c
+  }, c)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Valor R$",
+    error: errs.valor
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.valor,
+    type: "number",
+    step: "0.01",
+    value: form.valor || '',
+    onChange: e => F('valor')(e.target.value),
+    placeholder: "0,00"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Dia vencimento",
+    error: errs.diaVencimento
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.diaVencimento,
+    type: "number",
+    min: "1",
+    max: "31",
+    value: form.diaVencimento || '',
+    onChange: e => F('diaVencimento')(e.target.value),
+    placeholder: "5"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "M\xE9todo de pagamento"
+  }, /*#__PURE__*/React.createElement(Sel, {
+    value: form.metodoPagamento || 'Pix',
+    onChange: e => F('metodoPagamento')(e.target.value)
+  }, METODOS.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m
+  }, m)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Observa\xE7\xE3o"
+  }, /*#__PURE__*/React.createElement(Tex, {
+    value: form.observacao || '',
+    onChange: e => F('observacao')(e.target.value),
+    placeholder: "Opcional..."
+  }))));
+};
+
+// ── CARTÕES (simplificado) ───────────────────────────────────────────────
+const Cartoes = ({
+  data,
+  onChange
+}) => {
+  const [mCard, setMCard] = useState(false);
+  const [editC, setEditC] = useState(null);
+  const [fC, setFC] = useState({});
+  const [errs, setErrs] = useState({});
+  const mes = data.config?.mesAtual || getMes();
+  const openAddCard = () => {
+    setEditC(null);
+    setFC({
+      nome: '',
+      digitos: '',
+      limite: '',
+      diaFechamento: '20',
+      diaVencimento: '27',
+      cor: '#820AD1'
+    });
+    setErrs({});
+    setMCard(true);
+  };
+  const openEditCard = c => {
+    setEditC(c);
+    setFC({
+      ...c,
+      limite: String(c.limite)
+    });
+    setErrs({});
+    setMCard(true);
+  };
+  const saveCard = () => {
+    const e = {};
+    if (!fC.nome?.trim()) e.nome = 'Obrigatório';
+    if (!fC.limite || isNaN(+fC.limite)) e.limite = 'Inválido';
+    setErrs(e);
+    if (Object.keys(e).length) return;
+    const item = {
+      ...fC,
+      limite: +fC.limite,
+      diaFechamento: +fC.diaFechamento || 20,
+      diaVencimento: +fC.diaVencimento || 27,
+      faturas: editC?.faturas || {},
+      id: editC?.id || uid()
+    };
+    const list = editC ? data.cartoes.map(c => c.id === editC.id ? item : c) : [...data.cartoes, item];
+    onChange({
+      ...data,
+      cartoes: list
+    });
+    setMCard(false);
+  };
+  const delCard = () => {
+    onChange({
+      ...data,
+      cartoes: data.cartoes.filter(c => c.id !== editC.id)
+    });
+    setMCard(false);
+  };
+  const setValorFatura = (cid, val) => {
+    const cartoes = data.cartoes.map(c => {
+      if (c.id !== cid) return c;
+      const fat = c.faturas?.[mes] || {
+        pago: false,
+        valor: 0
+      };
+      return {
+        ...c,
+        faturas: {
+          ...c.faturas,
+          [mes]: {
+            ...fat,
+            valor: +val || 0
+          }
+        }
+      };
+    });
+    onChange({
+      ...data,
+      cartoes
+    });
+  };
+  const togglePago = cid => {
+    const cartoes = data.cartoes.map(c => {
+      if (c.id !== cid) return c;
+      const fat = c.faturas?.[mes] || {
+        pago: false,
+        valor: 0
+      };
+      if (!fat.pago) beep();
+      return {
+        ...c,
+        faturas: {
+          ...c.faturas,
+          [mes]: {
+            ...fat,
+            pago: !fat.pago
+          }
+        }
+      };
+    });
+    onChange({
+      ...data,
+      cartoes
+    });
+  };
+  const totalFaturas = useMemo(() => data.cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [data.cartoes, mes]);
+  const totalPago = useMemo(() => data.cartoes.reduce((s, c) => {
+    const f = c.faturas?.[mes];
+    return s + (f?.pago ? f.valor || 0 : 0);
+  }, 0), [data.cartoes, mes]);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-enter",
+    style: {
+      padding: 24,
+      overflowY: 'auto',
+      height: '100%'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 20,
+      flexWrap: 'wrap',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 28,
+      fontWeight: 800
+    }
+  }, "Cart\xF5es de Cr\xE9dito"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: C.muted,
+      fontSize: 13,
+      marginTop: 4
+    }
+  }, "Total faturas: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: C.amber
+    }
+  }, fmt(totalFaturas)), totalPago > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 Pago: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: C.green
+    }
+  }, fmt(totalPago))))), /*#__PURE__*/React.createElement("button", {
+    onClick: openAddCard,
+    style: btn('primary')
+  }, /*#__PURE__*/React.createElement(LR.Plus, {
+    size: 15
+  }), "Novo Cart\xE3o")), data.cartoes.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      textAlign: 'center',
+      padding: 48,
+      color: C.muted
+    }
+  }, "Nenhum cart\xE3o cadastrado") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16
+    }
+  }, data.cartoes.map(c => {
+    const fat = c.faturas?.[mes] || {
+      pago: false,
+      valor: 0
+    };
+    const pct = c.limite > 0 ? (fat.valor || 0) / c.limite * 100 : 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id,
+      style: card()
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: `linear-gradient(135deg,${c.cor || '#820AD1'},${c.cor || '#820AD1'}88)`,
+        borderRadius: 12,
+        padding: 20,
+        position: 'relative',
+        overflow: 'hidden',
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        top: -30,
+        right: -30,
+        width: 120,
+        height: 120,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,.08)'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        bottom: -20,
+        left: 40,
+        width: 80,
+        height: 80,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,.05)'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        position: 'relative'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 18,
+        fontWeight: 800,
+        color: '#fff'
+      }
+    }, c.nome), /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: 'rgba(255,255,255,.65)',
+        fontSize: 14,
+        marginTop: 4,
+        letterSpacing: 2
+      }
+    }, "\u2022\u2022\u2022\u2022 ", c.digitos || '****')), /*#__PURE__*/React.createElement("button", {
+      onClick: () => openEditCard(c),
+      style: {
+        padding: '4px 8px',
+        borderRadius: 6,
+        border: '1px solid rgba(255,255,255,.3)',
+        background: 'transparent',
+        color: '#fff',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center'
+      }
+    }, /*#__PURE__*/React.createElement(LR.Pencil, {
+      size: 13
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 20,
+        position: 'relative'
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: 'rgba(255,255,255,.55)',
+        fontSize: 10,
+        textTransform: 'uppercase',
+        letterSpacing: '.08em'
+      }
+    }, "Fatura ", mesLabel(mes)), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 26,
+        fontWeight: 800,
+        color: '#fff'
+      }
+    }, fmt(fat.valor || 0)), fat.pago && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: 'rgba(255,255,255,.8)',
+        background: 'rgba(0,208,132,.3)',
+        padding: '2px 10px',
+        borderRadius: 20,
+        fontWeight: 700
+      }
+    }, "\u2713 Pago"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '1fr auto',
+        gap: 10,
+        alignItems: 'flex-end',
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement(Field, {
+      label: `Valor da fatura — ${mesLabel(mes)}`
+    }, /*#__PURE__*/React.createElement(Inp, {
+      type: "number",
+      step: "0.01",
+      placeholder: "0,00",
+      value: fat.valor || '',
+      onChange: e => setValorFatura(c.id, e.target.value)
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: () => togglePago(c.id),
+      style: {
+        ...btn(fat.pago ? 'primary' : 'ghost'),
+        marginBottom: 14,
+        whiteSpace: 'nowrap'
+      }
+    }, fat.pago ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LR.Check, {
+      size: 14
+    }), "Pago") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LR.Clock, {
+      size: 14
+    }), "Marcar pago"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 11,
+        color: C.muted,
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Limite: ", fmt(c.limite)), /*#__PURE__*/React.createElement("span", null, "Fech. dia ", c.diaFechamento, " \xB7 Venc. dia ", c.diaVencimento)), /*#__PURE__*/React.createElement(ProgBar, {
+      pct: pct
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", null, fmt(fat.valor || 0), " utilizado"), /*#__PURE__*/React.createElement("span", null, fmtP(pct)))));
+  })), /*#__PURE__*/React.createElement(Modal, {
+    open: mCard,
+    onClose: () => setMCard(false),
+    title: editC ? 'Editar Cartão' : 'Novo Cartão',
+    onSave: saveCard,
+    onDelete: editC ? delCard : null
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nome",
+    error: errs.nome
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.nome,
+    value: fC.nome || '',
+    onChange: e => setFC(f => ({
+      ...f,
+      nome: e.target.value
+    })),
+    placeholder: "Ex: Nubank"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "\xDAltimos 4 d\xEDgitos"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    value: fC.digitos || '',
+    onChange: e => setFC(f => ({
+      ...f,
+      digitos: e.target.value.slice(0, 4)
+    })),
+    placeholder: "1234",
+    maxLength: 4
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Limite R$",
+    error: errs.limite
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.limite,
+    type: "number",
+    value: fC.limite || '',
+    onChange: e => setFC(f => ({
+      ...f,
+      limite: e.target.value
+    })),
+    placeholder: "5000"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Dia fechamento"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "number",
+    min: "1",
+    max: "31",
+    value: fC.diaFechamento || '',
+    onChange: e => setFC(f => ({
+      ...f,
+      diaFechamento: e.target.value
+    })),
+    placeholder: "20"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Dia vencimento"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "number",
+    min: "1",
+    max: "31",
+    value: fC.diaVencimento || '',
+    onChange: e => setFC(f => ({
+      ...f,
+      diaVencimento: e.target.value
+    })),
+    placeholder: "27"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Cor do cart\xE3o"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 10,
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "color",
+    value: fC.cor || '#820AD1',
+    onChange: e => setFC(f => ({
+      ...f,
+      cor: e.target.value
+    })),
+    style: {
+      width: 40,
+      height: 36,
+      border: 'none',
+      borderRadius: 6,
+      cursor: 'pointer',
+      background: 'transparent'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: C.muted
+    }
+  }, fC.cor || '#820AD1')))));
+};
+
+// ── PARCELAS ─────────────────────────────────────────────────────────────
+const Parcelas = ({
+  data,
+  onChange
+}) => {
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState(null);
+  const [form, setForm] = useState({});
+  const [errs, setErrs] = useState({});
+  const [filtro, setFiltro] = useState('Ativas');
+  const F = k => v => setForm(f => ({
+    ...f,
+    [k]: v
+  }));
+  const totalAtivo = useMemo(() => data.parcelas.filter(p => p.status === 'ativa').reduce((s, p) => s + (p.valorParcela || 0), 0), [data.parcelas]);
+  const openAdd = () => {
+    setEdit(null);
+    setForm({
+      descricao: '',
+      valorTotal: '',
+      numParcelas: '',
+      parcelaAtual: '1',
+      inicio: getMes(),
+      cartaoId: '',
+      observacao: '',
+      status: 'ativa'
+    });
+    setErrs({});
+    setOpen(true);
+  };
+  const openEdit = item => {
+    setEdit(item);
+    setForm({
+      ...item,
+      valorTotal: String(item.valorTotal),
+      numParcelas: String(item.numParcelas),
+      parcelaAtual: String(item.parcelaAtual)
+    });
+    setErrs({});
+    setOpen(true);
+  };
+  const validate = () => {
+    const e = {};
+    if (!form.descricao?.trim()) e.descricao = 'Obrigatório';
+    if (!form.valorTotal || isNaN(+form.valorTotal)) e.valorTotal = 'Inválido';
+    if (!form.numParcelas || isNaN(+form.numParcelas)) e.numParcelas = 'Inválido';
+    setErrs(e);
+    return !Object.keys(e).length;
+  };
+  const handleSave = () => {
+    if (!validate()) return;
+    const n = +form.numParcelas,
+      vt = +form.valorTotal,
+      pa = +form.parcelaAtual || 1;
+    const item = {
+      ...form,
+      valorTotal: vt,
+      numParcelas: n,
+      parcelaAtual: pa,
+      valorParcela: +(vt / n).toFixed(2),
+      pago: edit?.pago || false,
+      status: pa >= n ? 'quitada' : form.status || 'ativa',
+      id: edit?.id || uid()
+    };
+    const list = edit ? data.parcelas.map(p => p.id === edit.id ? item : p) : [...data.parcelas, item];
+    onChange({
+      ...data,
+      parcelas: list
+    });
+    setOpen(false);
+  };
+  const handleDel = () => {
+    onChange({
+      ...data,
+      parcelas: data.parcelas.filter(p => p.id !== edit.id)
+    });
+    setOpen(false);
+  };
+  const togglePagoParcela = (e, id) => {
+    e.stopPropagation();
+    const list = data.parcelas.map(p => {
+      if (p.id !== id) return p;
+      if (!p.pago) beep();
+      return {
+        ...p,
+        pago: !p.pago
+      };
+    });
+    onChange({
+      ...data,
+      parcelas: list
+    });
+  };
+  const filtered = useMemo(() => {
+    if (filtro === 'Ativas') return data.parcelas.filter(p => p.status === 'ativa');
+    if (filtro === 'Quitadas') return data.parcelas.filter(p => p.status === 'quitada');
+    return data.parcelas;
+  }, [data.parcelas, filtro]);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-enter",
+    style: {
+      padding: 24,
+      overflowY: 'auto',
+      height: '100%'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 20,
+      flexWrap: 'wrap',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 28,
+      fontWeight: 800
+    }
+  }, "Parcelas"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: C.muted,
+      fontSize: 13,
+      marginTop: 4
+    }
+  }, "Total mensal ativo: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: C.amber
+    }
+  }, fmt(totalAtivo)))), /*#__PURE__*/React.createElement("button", {
+    onClick: openAdd,
+    style: btn('primary')
+  }, /*#__PURE__*/React.createElement(LR.Plus, {
+    size: 15
+  }), "Adicionar")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 14
+    }
+  }, ['Ativas', 'Quitadas', 'Todas'].map(f => /*#__PURE__*/React.createElement("button", {
+    key: f,
+    onClick: () => setFiltro(f),
+    style: {
+      ...btn(filtro === f ? 'primary' : 'ghost'),
+      padding: '6px 14px',
+      fontSize: 13
+    }
+  }, f))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12
+    }
+  }, filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      textAlign: 'center',
+      padding: 40,
+      color: C.muted
+    }
+  }, "Nenhuma parcela encontrada") : filtered.map(item => {
+    const pct = item.parcelaAtual / item.numParcelas * 100;
+    const ultima = item.parcelaAtual === item.numParcelas && item.status === 'ativa';
+    const cartao = data.cartoes.find(c => c.id === item.cartaoId);
+    const semCartao = !item.cartaoId;
+    const accentColor = item.status === 'quitada' ? C.green : item.pago ? C.green : C.amber;
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      onClick: () => openEdit(item),
+      style: {
+        ...card(),
+        cursor: 'pointer',
+        opacity: item.status === 'quitada' ? .65 : 1,
+        borderLeft: `3px solid ${accentColor}`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 15,
+        fontWeight: 600
+      }
+    }, item.descricao), ultima && /*#__PURE__*/React.createElement(Badge, {
+      color: C.amber
+    }, "\xDAltima parcela!"), item.status === 'quitada' && /*#__PURE__*/React.createElement(Badge, {
+      color: C.green
+    }, "Quitada"), semCartao && item.pago && item.status !== 'quitada' && /*#__PURE__*/React.createElement(Badge, {
+      color: C.green
+    }, "Pago este m\xEAs")), cartao && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 2
+      }
+    }, cartao.nome), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 2
+      }
+    }, "In\xEDcio: ", mesLabel(item.inicio)), item.observacao && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 2,
+        fontStyle: 'italic'
+      }
+    }, item.observacao)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 8,
+        flexShrink: 0,
+        marginLeft: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: 'right'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 18,
+        fontWeight: 700
+      }
+    }, fmt(item.valorParcela), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: C.muted,
+        fontWeight: 400
+      }
+    }, "/m\xEAs")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted
+      }
+    }, "Total: ", fmt(item.valorTotal))), semCartao && item.status === 'ativa' && /*#__PURE__*/React.createElement("button", {
+      onClick: e => togglePagoParcela(e, item.id),
+      style: {
+        ...btn(item.pago ? 'primary' : 'ghost'),
+        padding: '6px 12px',
+        fontSize: 12,
+        whiteSpace: 'nowrap'
+      }
+    }, item.pago ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LR.Check, {
+      size: 13
+    }), "Pago") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LR.Clock, {
+      size: 13
+    }), "Confirmar pago")))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 11,
+        color: C.muted,
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Parcela ", item.parcelaAtual, " de ", item.numParcelas), /*#__PURE__*/React.createElement("span", null, fmtP(pct))), /*#__PURE__*/React.createElement(ProgBar, {
+      pct: pct,
+      color: item.status === 'quitada' ? C.green : C.amber
+    })));
+  })), /*#__PURE__*/React.createElement(Modal, {
+    open: open,
+    onClose: () => setOpen(false),
+    title: edit ? 'Editar Parcela' : 'Nova Parcela',
+    onSave: handleSave,
+    onDelete: edit ? handleDel : null
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Descri\xE7\xE3o",
+    error: errs.descricao
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.descricao,
+    value: form.descricao || '',
+    onChange: e => F('descricao')(e.target.value),
+    placeholder: "Ex: Notebook Dell"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Valor total R$",
+    error: errs.valorTotal
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.valorTotal,
+    type: "number",
+    step: "0.01",
+    value: form.valorTotal || '',
+    onChange: e => F('valorTotal')(e.target.value),
+    placeholder: "4800"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "N\xBA de parcelas",
+    error: errs.numParcelas
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.numParcelas,
+    type: "number",
+    min: "1",
+    value: form.numParcelas || '',
+    onChange: e => F('numParcelas')(e.target.value),
+    placeholder: "12"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Parcela atual"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "number",
+    min: "1",
+    value: form.parcelaAtual || '',
+    onChange: e => F('parcelaAtual')(e.target.value),
+    placeholder: "1"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "M\xEAs de in\xEDcio"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "month",
+    value: form.inicio || '',
+    onChange: e => F('inicio')(e.target.value)
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Cart\xE3o vinculado"
+  }, /*#__PURE__*/React.createElement(Sel, {
+    value: form.cartaoId || '',
+    onChange: e => F('cartaoId')(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Outro / D\xE9bito"), data.cartoes.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.nome)))), form.valorTotal && form.numParcelas && +form.numParcelas > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 14px',
+      background: C.elevated,
+      borderRadius: 8,
+      fontSize: 13,
+      color: C.muted,
+      marginTop: 4
+    }
+  }, "Valor por parcela: ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: C.text
+    }
+  }, fmt(+form.valorTotal / +form.numParcelas))), /*#__PURE__*/React.createElement(Field, {
+    label: "Observa\xE7\xE3o"
+  }, /*#__PURE__*/React.createElement(Tex, {
+    value: form.observacao || '',
+    onChange: e => F('observacao')(e.target.value),
+    placeholder: "Opcional..."
+  }))));
+};
+
+// ── CONFIGURAÇÕES ────────────────────────────────────────────────────────
+const Config = ({
+  open,
+  onClose,
+  data,
+  onChange
+}) => {
+  const [f, setF] = useState({});
+  useEffect(() => {
+    if (open) setF({
+      ...data.config
+    });
+  }, [open, data.config]);
+  const save = () => {
+    onChange({
+      ...data,
+      config: {
+        ...data.config,
+        ...f,
+        rendaMensal: +f.rendaMensal || 0
+      }
+    });
+    onClose();
+  };
+  const exportar = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financeos-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const importar = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        onChange({
+          ...DEF,
+          ...JSON.parse(ev.target.result)
+        });
+        onClose();
+      } catch {
+        alert('Arquivo inválido');
+      }
+    };
+    r.readAsText(file);
+  };
+  const limpar = () => {
+    if (!confirm('Isso irá resetar todos os status de pagamento do mês. Continuar?')) return;
+    onChange({
+      ...data,
+      despesasFixas: data.despesasFixas.map(d => ({
+        ...d,
+        pago: false
+      }))
+    });
+    onClose();
+  };
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: open,
+    onClose: onClose,
+    title: "Configura\xE7\xF5es",
+    onSave: save,
+    saveLabel: "Salvar configura\xE7\xF5es"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Renda mensal R$"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "number",
+    value: f.rendaMensal || '',
+    onChange: e => setF(v => ({
+      ...v,
+      rendaMensal: e.target.value
+    })),
+    placeholder: "5000"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "M\xEAs de refer\xEAncia"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "month",
+    value: f.mesAtual || '',
+    onChange: e => setF(v => ({
+      ...v,
+      mesAtual: e.target.value
+    }))
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: C.border,
+      margin: '16px 0'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: exportar,
+    style: {
+      ...btn(),
+      justifyContent: 'center',
+      padding: 11
+    }
+  }, /*#__PURE__*/React.createElement(LR.Download, {
+    size: 15
+  }), "Exportar dados (JSON)"), /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...btn(),
+      justifyContent: 'center',
+      padding: 11,
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement(LR.Upload, {
+    size: 15
+  }), "Importar dados (JSON)", /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: ".json",
+    onChange: importar,
+    style: {
+      display: 'none'
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: limpar,
+    style: {
+      ...btn('danger'),
+      justifyContent: 'center',
+      padding: 11
+    }
+  }, /*#__PURE__*/React.createElement(LR.RefreshCw, {
+    size: 15
+  }), "Limpar pagamentos do m\xEAs")));
+};
+
+// ── MESES ────────────────────────────────────────────────────────────────
+const Meses = ({
+  data
+}) => {
+  const {
+    despesasFixas,
+    cartoes,
+    parcelas,
+    config,
+    historicoMensal
+  } = data;
+  const mes = config.mesAtual || getMes();
+  const totalFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
+  const pagoFixas = useMemo(() => despesasFixas.filter(d => d.pago).reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
+  const totalCartoes = useMemo(() => cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [cartoes, mes]);
+  const pagoCartoes = useMemo(() => cartoes.reduce((s, c) => {
+    const f = c.faturas?.[mes];
+    return s + (f?.pago ? f.valor || 0 : 0);
+  }, 0), [cartoes, mes]);
+  const totalParc = useMemo(() => parcelas.filter(p => p.status === 'ativa').reduce((s, p) => s + (p.valorParcela || 0), 0), [parcelas]);
+  const totalAtual = totalFixas + totalCartoes + totalParc;
+  const pagoAtual = pagoFixas + pagoCartoes;
+  const allMeses = useMemo(() => {
+    const hist = Object.entries(historicoMensal).filter(([m]) => m !== mes).map(([m, d]) => ({
+      mes: m,
+      total: d.total || 0,
+      pago: d.pago || 0,
+      atual: false
+    })).sort((a, b) => b.mes.localeCompare(a.mes));
+    return [{
+      mes,
+      total: totalAtual,
+      pago: pagoAtual,
+      atual: true
+    }, ...hist];
+  }, [historicoMensal, mes, totalAtual, pagoAtual]);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-enter",
+    style: {
+      padding: 24,
+      overflowY: 'auto',
+      height: '100%'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 28,
+      fontWeight: 800
+    }
+  }, "Hist\xF3rico Mensal"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: C.muted,
+      fontSize: 13,
+      marginTop: 4
+    }
+  }, allMeses.length, " m\xEAs(es) registrado(s)")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12
+    }
+  }, allMeses.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      textAlign: 'center',
+      padding: 40,
+      color: C.muted
+    }
+  }, "Nenhum hist\xF3rico ainda") : allMeses.map(({
+    mes: m,
+    total,
+    pago,
+    atual
+  }) => {
+    const aPagar = Math.max(total - pago, 0);
+    const pct = total > 0 ? pago / total * 100 : 0;
+    const accentColor = atual ? C.blue : pct >= 100 ? C.green : C.amber;
+    return /*#__PURE__*/React.createElement("div", {
+      key: m,
+      style: {
+        ...card(),
+        borderLeft: `3px solid ${accentColor}`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 20,
+        fontWeight: 700
+      }
+    }, mesLabel(m)), atual && /*#__PURE__*/React.createElement(Badge, {
+      color: C.blue
+    }, "M\xEAs atual"), !atual && pct >= 100 && /*#__PURE__*/React.createElement(Badge, {
+      color: C.green
+    }, "Quitado"), !atual && pct > 0 && pct < 100 && /*#__PURE__*/React.createElement(Badge, {
+      color: C.amber
+    }, "Parcial"), !atual && pct === 0 && /*#__PURE__*/React.createElement(Badge, {
+      color: C.muted
+    }, "Sem registro"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: 'right'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 22,
+        fontWeight: 800
+      }
+    }, fmt(total)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 2
+      }
+    }, "total comprometido"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 10,
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.elevated,
+        borderRadius: 8,
+        padding: '10px 14px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: C.muted,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        fontWeight: 600,
+        letterSpacing: '.05em'
+      }
+    }, "Pago"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 17,
+        fontWeight: 700,
+        color: C.green
+      }
+    }, fmt(pago))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.elevated,
+        borderRadius: 8,
+        padding: '10px 14px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: C.muted,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        fontWeight: 600,
+        letterSpacing: '.05em'
+      }
+    }, "A Pagar"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 17,
+        fontWeight: 700,
+        color: aPagar > 0 ? C.amber : C.muted
+      }
+    }, fmt(aPagar)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 11,
+        color: C.muted,
+        marginBottom: 5
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Progresso"), /*#__PURE__*/React.createElement("span", null, fmtP(pct))), /*#__PURE__*/React.createElement(ProgBar, {
+      pct: pct,
+      color: C.green
+    })));
+  })));
+};
+
+// ── SIDEBAR ──────────────────────────────────────────────────────────────
+const NAV = [{
+  id: 'dashboard',
+  label: 'Dashboard',
+  Icon: LR.LayoutDashboard
+}, {
+  id: 'despesas',
+  label: 'Despesas Fixas',
+  Icon: LR.Receipt
+}, {
+  id: 'cartoes',
+  label: 'Cartões',
+  Icon: LR.CreditCard
+}, {
+  id: 'parcelas',
+  label: 'Parcelas',
+  Icon: LR.Layers
+}, {
+  id: 'meses',
+  label: 'Histórico',
+  Icon: LR.CalendarDays
+}];
+const Sidebar = ({
+  view,
+  setView,
+  onCfg,
+  mobile
+}) => {
+  if (mobile) return /*#__PURE__*/React.createElement("nav", {
+    style: {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      background: C.surface,
+      borderTop: `1px solid ${C.border}`,
+      display: 'flex',
+      justifyContent: 'space-around',
+      padding: '6px 0'
+    }
+  }, NAV.map(({
+    id,
+    label,
+    Icon
+  }) => {
+    const a = view === id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: id,
+      onClick: () => setView(id),
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 3,
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '4px 10px',
+        color: a ? C.green : C.muted,
+        fontSize: 9,
+        fontFamily: 'DM Sans',
+        fontWeight: a ? 600 : 400
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      size: 20
+    }), /*#__PURE__*/React.createElement("span", null, label.split(' ')[0]));
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: onCfg,
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 3,
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '4px 10px',
+      color: C.muted,
+      fontSize: 9,
+      fontFamily: 'DM Sans'
+    }
+  }, /*#__PURE__*/React.createElement(LR.Settings, {
+    size: 20
+  }), /*#__PURE__*/React.createElement("span", null, "Config.")));
+  return /*#__PURE__*/React.createElement("aside", {
+    style: {
+      width: 220,
+      flexShrink: 0,
+      background: C.surface,
+      borderRight: `1px solid ${C.border}`,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '24px 12px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '0 8px',
+      marginBottom: 32
+    }
+  }, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 22,
+      fontWeight: 800,
+      color: C.green
+    }
+  }, "Finance", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, "OS")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 2
+    }
+  }, "Controle financeiro")), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3
+    }
+  }, NAV.map(({
+    id,
+    label,
+    Icon
+  }) => {
+    const a = view === id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: id,
+      onClick: () => setView(id),
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '10px 12px',
+        borderRadius: 8,
+        border: 'none',
+        background: a ? C.green + '22' : 'transparent',
+        color: a ? C.green : C.muted,
+        cursor: 'pointer',
+        fontSize: 14,
+        fontFamily: 'DM Sans',
+        textAlign: 'left',
+        fontWeight: a ? 600 : 400,
+        borderLeft: a ? `3px solid ${C.green}` : '3px solid transparent'
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      size: 17
+    }), label);
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: onCfg,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '10px 12px',
+      borderRadius: 8,
+      border: 'none',
+      background: 'transparent',
+      color: C.muted,
+      cursor: 'pointer',
+      fontSize: 14,
+      fontFamily: 'DM Sans',
+      textAlign: 'left'
+    }
+  }, /*#__PURE__*/React.createElement(LR.Settings, {
+    size: 17
+  }), "Configura\xE7\xF5es"));
+};
+
+// ── APP ROOT ─────────────────────────────────────────────────────────────
+const App = () => {
+  const [data, setData] = useState(load);
+  const [view, setView] = useState('dashboard');
+  const [cfgOpen, setCfg] = useState(false);
+  const [mobile, setMob] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const h = () => setMob(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  const handleChange = useCallback(d => {
+    setData(d);
+    save(d);
+  }, []);
+  useEffect(() => {
+    const cur = getMes();
+    setData(prev => {
+      const last = prev.config?.lastSeenMonth;
+      if (!last) return {
+        ...prev,
+        config: {
+          ...prev.config,
+          lastSeenMonth: cur
+        }
+      };
+      if (last === cur) return prev;
+      const totalFixas = prev.despesasFixas.reduce((s, x) => s + (x.valor || 0), 0);
+      const pagoFixas = prev.despesasFixas.filter(x => x.pago).reduce((s, x) => s + (x.valor || 0), 0);
+      const newParcelas = prev.parcelas.map(p => {
+        if (p.status !== 'ativa') return p;
+        const next = (p.parcelaAtual || 1) + 1;
+        return {
+          ...p,
+          parcelaAtual: next,
+          status: next >= (p.numParcelas || 1) ? 'quitada' : 'ativa'
+        };
+      });
+      const next = {
+        ...prev,
+        config: {
+          ...prev.config,
+          lastSeenMonth: cur,
+          mesAtual: cur
+        },
+        despesasFixas: prev.despesasFixas.map(x => ({
+          ...x,
+          pago: false
+        })),
+        parcelas: newParcelas.map(p => ({
+          ...p,
+          pago: false
+        })),
+        historicoMensal: {
+          ...prev.historicoMensal,
+          [last]: {
+            total: totalFixas,
+            pago: pagoFixas
+          }
+        }
+      };
+      save(next);
+      return next;
+    });
+  }, []);
+  const VIEWS = {
+    dashboard: /*#__PURE__*/React.createElement(Dashboard, {
+      data: data
+    }),
+    despesas: /*#__PURE__*/React.createElement(DespesasFixas, {
+      data: data,
+      onChange: handleChange
+    }),
+    cartoes: /*#__PURE__*/React.createElement(Cartoes, {
+      data: data,
+      onChange: handleChange
+    }),
+    parcelas: /*#__PURE__*/React.createElement(Parcelas, {
+      data: data,
+      onChange: handleChange
+    }),
+    meses: /*#__PURE__*/React.createElement(Meses, {
+      data: data
+    })
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      height: '100vh',
+      overflow: 'hidden',
+      background: C.bg
+    }
+  }, /*#__PURE__*/React.createElement(Sidebar, {
+    view: view,
+    setView: setView,
+    onCfg: () => setCfg(true),
+    mobile: mobile
+  }), /*#__PURE__*/React.createElement("main", {
+    style: {
+      flex: 1,
+      overflow: 'hidden',
+      paddingBottom: mobile ? 64 : 0
+    }
+  }, VIEWS[view]), /*#__PURE__*/React.createElement(Config, {
+    open: cfgOpen,
+    onClose: () => setCfg(false),
+    data: data,
+    onChange: handleChange
+  }));
+};
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));</script>
+</body>
+</html>
