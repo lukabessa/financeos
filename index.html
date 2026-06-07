@@ -96,8 +96,12 @@ const {
   useState,
   useEffect,
   useMemo,
-  useCallback
+  useCallback,
+  createContext,
+  useContext
 } = React;
+const MobileCtx = createContext(false);
+const useMobile = () => useContext(MobileCtx);
 const {
   ResponsiveContainer,
   PieChart,
@@ -373,12 +377,38 @@ const Modal = ({
   saveLabel = 'Salvar',
   children
 }) => {
+  const mobile = useMobile();
   useEffect(() => {
     const h = e => e.key === 'Escape' && onClose();
     if (open) window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [open, onClose]);
   if (!open) return null;
+  const panelStyle = mobile ? {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1001,
+    background: C.surface,
+    borderTop: `1px solid ${C.border}`,
+    borderRadius: '16px 16px 0 0',
+    maxHeight: '92vh',
+    overflowY: 'auto',
+    padding: '20px 20px 32px',
+    display: 'flex',
+    flexDirection: 'column'
+  } : {
+    width: '100%',
+    maxWidth: 480,
+    background: C.surface,
+    borderLeft: `1px solid ${C.border}`,
+    height: '100%',
+    overflowY: 'auto',
+    padding: 24,
+    display: 'flex',
+    flexDirection: 'column'
+  };
   return /*#__PURE__*/React.createElement("div", {
     onClick: e => e.target === e.currentTarget && onClose(),
     style: {
@@ -388,32 +418,32 @@ const Modal = ({
       background: 'rgba(0,0,0,.72)',
       backdropFilter: 'blur(4px)',
       display: 'flex',
-      justifyContent: 'flex-end'
+      justifyContent: mobile ? 'flex-end' : 'flex-end',
+      alignItems: mobile ? 'flex-end' : 'stretch',
+      flexDirection: mobile ? 'column' : 'row'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-slide",
+    className: mobile ? '' : 'modal-slide',
+    style: panelStyle
+  }, mobile && /*#__PURE__*/React.createElement("div", {
     style: {
-      width: '100%',
-      maxWidth: 480,
-      background: C.surface,
-      borderLeft: `1px solid ${C.border}`,
-      height: '100%',
-      overflowY: 'auto',
-      padding: 24,
-      display: 'flex',
-      flexDirection: 'column'
+      width: 40,
+      height: 4,
+      background: C.border,
+      borderRadius: 2,
+      margin: '0 auto 20px'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 24
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
       fontFamily: 'Syne',
-      fontSize: 20,
+      fontSize: mobile ? 18 : 20,
       fontWeight: 700
     }
   }, title), /*#__PURE__*/React.createElement("button", {
@@ -434,7 +464,7 @@ const Modal = ({
       display: 'flex',
       flexDirection: 'column',
       gap: 8,
-      marginTop: 24
+      marginTop: 20
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onSave,
@@ -512,6 +542,7 @@ const Stat = ({
 const Dashboard = ({
   data
 }) => {
+  const mobile = useMobile();
   const {
     despesasFixas,
     cartoes,
@@ -573,35 +604,36 @@ const Dashboard = ({
     l: `${diff}d`,
     c: C.green
   };
+  const pad = mobile ? 16 : 24;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-enter",
     style: {
-      padding: 24,
+      padding: pad,
       overflowY: 'auto',
       height: '100%'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 24
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("h1", {
     style: {
       fontFamily: 'Syne',
-      fontSize: 28,
+      fontSize: mobile ? 22 : 28,
       fontWeight: 800
     }
   }, "Dashboard ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: C.muted,
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: 400
     }
   }, mesLabel(mes)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
-      gap: 14,
-      marginBottom: 20
+      gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(200px,1fr))',
+      gap: 10,
+      marginBottom: 14
     }
   }, /*#__PURE__*/React.createElement(Stat, {
     label: "Total do M\xEAs",
@@ -627,9 +659,9 @@ const Dashboard = ({
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: 14,
-      marginBottom: 14
+      gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+      gap: 12,
+      marginBottom: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: card()
@@ -841,6 +873,7 @@ const DespesasFixas = ({
   data,
   onChange
 }) => {
+  const mobile = useMobile();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({});
@@ -930,10 +963,11 @@ const DespesasFixas = ({
     return l;
   }, [data.despesasFixas, filtro, catFil, ordem]);
   const total = useMemo(() => filtered.reduce((s, d) => s + d.valor, 0), [filtered]);
+  const pad = mobile ? 16 : 24;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-enter",
     style: {
-      padding: 24,
+      padding: pad,
       overflowY: 'auto',
       height: '100%'
     }
@@ -942,14 +976,14 @@ const DespesasFixas = ({
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: 20,
+      marginBottom: 16,
       flexWrap: 'wrap',
-      gap: 12
+      gap: 10
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: {
       fontFamily: 'Syne',
-      fontSize: 28,
+      fontSize: mobile ? 22 : 28,
       fontWeight: 800
     }
   }, "Despesas Fixas"), /*#__PURE__*/React.createElement("p", {
@@ -1162,6 +1196,7 @@ const Cartoes = ({
   data,
   onChange
 }) => {
+  const mobile = useMobile();
   const [mCard, setMCard] = useState(false);
   const [editC, setEditC] = useState(null);
   const [fC, setFC] = useState({});
@@ -1269,10 +1304,11 @@ const Cartoes = ({
     const f = c.faturas?.[mes];
     return s + (f?.pago ? f.valor || 0 : 0);
   }, 0), [data.cartoes, mes]);
+  const pad = mobile ? 16 : 24;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-enter",
     style: {
-      padding: 24,
+      padding: pad,
       overflowY: 'auto',
       height: '100%'
     }
@@ -1281,14 +1317,14 @@ const Cartoes = ({
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: 20,
+      marginBottom: 16,
       flexWrap: 'wrap',
-      gap: 12
+      gap: 10
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: {
       fontFamily: 'Syne',
-      fontSize: 28,
+      fontSize: mobile ? 22 : 28,
       fontWeight: 800
     }
   }, "Cart\xF5es de Cr\xE9dito"), /*#__PURE__*/React.createElement("p", {
@@ -1581,6 +1617,7 @@ const Parcelas = ({
   data,
   onChange
 }) => {
+  const mobile = useMobile();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({});
@@ -1674,10 +1711,11 @@ const Parcelas = ({
     if (filtro === 'Quitadas') return data.parcelas.filter(p => p.status === 'quitada');
     return data.parcelas;
   }, [data.parcelas, filtro]);
+  const pad = mobile ? 16 : 24;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-enter",
     style: {
-      padding: 24,
+      padding: pad,
       overflowY: 'auto',
       height: '100%'
     }
@@ -1686,14 +1724,14 @@ const Parcelas = ({
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: 20,
+      marginBottom: 16,
       flexWrap: 'wrap',
-      gap: 12
+      gap: 10
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     style: {
       fontFamily: 'Syne',
-      fontSize: 28,
+      fontSize: mobile ? 22 : 28,
       fontWeight: 800
     }
   }, "Parcelas"), /*#__PURE__*/React.createElement("p", {
@@ -2089,6 +2127,7 @@ const Config = ({
 const Meses = ({
   data
 }) => {
+  const mobile = useMobile();
   const {
     despesasFixas,
     cartoes,
@@ -2121,21 +2160,22 @@ const Meses = ({
       atual: true
     }, ...hist];
   }, [historicoMensal, mes, totalAtual, pagoAtual]);
+  const pad = mobile ? 16 : 24;
   return /*#__PURE__*/React.createElement("div", {
     className: "page-enter",
     style: {
-      padding: 24,
+      padding: pad,
       overflowY: 'auto',
       height: '100%'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 24
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("h1", {
     style: {
       fontFamily: 'Syne',
-      fontSize: 28,
+      fontSize: mobile ? 22 : 28,
       fontWeight: 800
     }
   }, "Hist\xF3rico Mensal"), /*#__PURE__*/React.createElement("p", {
@@ -2219,7 +2259,7 @@ const Meses = ({
     }, "total comprometido"))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
+        gridTemplateColumns: mobile ? '1fr 1fr' : '1fr 1fr',
         gap: 10,
         marginBottom: 12
       }
@@ -2540,7 +2580,9 @@ const App = () => {
       data: data
     })
   };
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(MobileCtx.Provider, {
+    value: mobile
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       height: '100vh',
@@ -2563,7 +2605,7 @@ const App = () => {
     onClose: () => setCfg(false),
     data: data,
     onChange: handleChange
-  }));
+  })));
 };
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));</script>
 </body>
