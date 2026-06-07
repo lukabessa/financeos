@@ -2495,12 +2495,161 @@ const Sidebar = ({
   }), "Configura\xE7\xF5es"));
 };
 
+// ── LOGIN ────────────────────────────────────────────────────────────────
+const CREDS = {
+  login: 'Bessa',
+  senha: 'Lu231001'
+};
+const Login = ({
+  onLogin
+}) => {
+  const [login, setLogin] = useState('');
+  const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState('');
+  const [show, setShow] = useState(false);
+  const [shake, setShake] = useState(false);
+  const handleSubmit = e => {
+    e.preventDefault();
+    if (login === CREDS.login && senha === CREDS.senha) {
+      sessionStorage.setItem('fos_auth', '1');
+      onLogin();
+    } else {
+      setErro('Login ou senha incorretos');
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      background: C.bg,
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
+        @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+        .shake{animation:shake .4s ease}
+        @keyframes loginFade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        .login-card{animation:loginFade .4s ease}
+      `), /*#__PURE__*/React.createElement("div", {
+    className: `login-card${shake ? ' shake' : ''}`,
+    style: {
+      width: '100%',
+      maxWidth: 380,
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 16,
+      padding: 36
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      marginBottom: 32
+    }
+  }, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 28,
+      fontWeight: 800,
+      color: C.green
+    }
+  }, "Finance", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: C.text
+    }
+  }, "OS")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: C.muted,
+      fontSize: 13,
+      marginTop: 6
+    }
+  }, "Acesse sua conta para continuar")), /*#__PURE__*/React.createElement("form", {
+    onSubmit: handleSubmit
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Login"
+  }, /*#__PURE__*/React.createElement(Inp, {
+    value: login,
+    onChange: e => {
+      setLogin(e.target.value);
+      setErro('');
+    },
+    placeholder: "Seu login",
+    autoComplete: "username"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Senha"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: show ? 'text' : 'password',
+    value: senha,
+    onChange: e => {
+      setSenha(e.target.value);
+      setErro('');
+    },
+    placeholder: "Sua senha",
+    autoComplete: "current-password",
+    style: {
+      ...inputStyle(false),
+      paddingRight: 44
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: () => setShow(s => !s),
+    style: {
+      position: 'absolute',
+      right: 12,
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      color: C.muted,
+      padding: 0,
+      display: 'flex',
+      alignItems: 'center'
+    }
+  }, show ? /*#__PURE__*/React.createElement(LR.X, {
+    size: 16
+  }) : /*#__PURE__*/React.createElement(LR.Check, {
+    size: 16
+  })))), erro && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: C.red,
+      marginBottom: 14,
+      textAlign: 'center',
+      padding: '8px 12px',
+      background: C.red + '11',
+      borderRadius: 8,
+      border: `1px solid ${C.red}33`
+    }
+  }, erro), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    style: {
+      ...btn('primary'),
+      width: '100%',
+      justifyContent: 'center',
+      padding: 13,
+      fontSize: 15,
+      marginTop: 4
+    }
+  }, "Entrar"))));
+};
+
 // ── APP ROOT ─────────────────────────────────────────────────────────────
 const App = () => {
+  const [auth, setAuth] = useState(() => sessionStorage.getItem('fos_auth') === '1');
   const [data, setData] = useState(load);
   const [view, setView] = useState('dashboard');
   const [cfgOpen, setCfg] = useState(false);
   const [mobile, setMob] = useState(window.innerWidth < 768);
+  if (!auth) return /*#__PURE__*/React.createElement(Login, {
+    onLogin: () => setAuth(true)
+  });
   useEffect(() => {
     const h = () => setMob(window.innerWidth < 768);
     window.addEventListener('resize', h);
