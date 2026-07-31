@@ -239,15 +239,61 @@ const DEF = {
   despesasFixas: [],
   cartoes: [],
   parcelas: [],
-  historicoMensal: {}
+  historicoMensal: {},
+  pagamentosFixas: {}
+};
+
+// Status de pagamento por despesa fixa, isolado por mês: pagamentosFixas[despesaId][mes] = { pago, dataPagamento }
+const getPagFixa = (data, id, mes) => data.pagamentosFixas?.[id]?.[mes] || {
+  pago: false,
+  dataPagamento: null
+};
+const setPagFixa = (data, id, mes, val) => ({
+  ...data,
+  pagamentosFixas: {
+    ...data.pagamentosFixas,
+    [id]: {
+      ...data.pagamentosFixas?.[id],
+      [mes]: val
+    }
+  }
+});
+
+// Migra o antigo status global (d.pago/d.dataPagamento) para o mês em que ele foi registrado,
+// sem sobrescrever pagamentosFixas já existentes. `raw` é o objeto tal como veio da fonte
+// (localStorage/nuvem/import), antes do merge com DEF — usado só para detectar se essa fonte
+// já tinha pagamentosFixas (DEF sempre tem {} por padrão, o que mascararia a checagem no merge).
+const migrateData = (merged, raw) => {
+  if (raw && raw.pagamentosFixas) return merged;
+  const mes = merged.config?.mesAtual || getMes();
+  const pagamentosFixas = {
+    ...merged.pagamentosFixas
+  };
+  (merged.despesasFixas || []).forEach(item => {
+    if (item.pago || item.dataPagamento) {
+      pagamentosFixas[item.id] = {
+        ...pagamentosFixas[item.id],
+        [mes]: {
+          pago: !!item.pago,
+          dataPagamento: item.dataPagamento || null
+        }
+      };
+    }
+  });
+  return {
+    ...merged,
+    pagamentosFixas
+  };
 };
 const load = () => {
   try {
     const r = localStorage.getItem(KEY);
-    return r ? {
+    if (!r) return DEF;
+    const raw = JSON.parse(r);
+    return migrateData({
       ...DEF,
-      ...JSON.parse(r)
-    } : DEF;
+      ...raw
+    }, raw);
   } catch {
     return DEF;
   }
@@ -675,6 +721,7 @@ const Stat = ({
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 const Dashboard = ({
   data,
+  onChange,
   viewMonth,
   onMonthChange
 }) => {
@@ -691,7 +738,7 @@ const Dashboard = ({
 
   // Mês atual: calcula ao vivo; mês passado: usa historicoMensal
   const totalFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
-  const pagoFixas = useMemo(() => despesasFixas.filter(d => d.pago).reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
+  const pagoFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (getPagFixa(data, d.id, mes).pago ? d.valor || 0 : 0), 0), [despesasFixas, data.pagamentosFixas, mes]);
   const totalCartoes = useMemo(() => cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [cartoes, mes]);
   const pagoCartoes = useMemo(() => cartoes.reduce((s, c) => {
     const f = c.faturas?.[mes];
@@ -727,10 +774,33 @@ const Dashboard = ({
   })), [historicoMensal]);
   const hoje = new Date();
   const dHoje = hoje.getDate();
-  const proximos = useMemo(() => despesasFixas.filter(d => !d.pago).map(d => ({
+  const curMes = getMes();
+  const proximos = useMemo(() => despesasFixas.filter(d => !getPagFixa(data, d.id, curMes).pago).map(d => ({
     ...d,
     diff: d.diaVencimento - dHoje
-  })).filter(d => d.diff >= -3 && d.diff <= 7).sort((a, b) => a.diff - b.diff), [despesasFixas, dHoje]);
+  })).filter(d => d.diff >= -3 && d.diff <= 7).sort((a, b) => a.diff - b.diff), [despesasFixas, data.pagamentosFixas, curMes, dHoje]);
+  const atrasados = useMemo(() => {
+    const list = [];
+    despesasFixas.forEach(d => {
+      const hist = data.pagamentosFixas?.[d.id] || {};
+      Object.keys(hist).forEach(m => {
+        if (m < curMes && !hist[m].pago) list.push({
+          ...d,
+          mesAtraso: m
+        });
+      });
+    });
+    return list.sort((a, b) => a.mesAtraso.localeCompare(b.mesAtraso));
+  }, [despesasFixas, data.pagamentosFixas, curMes]);
+  const [pagamentoPend, setPagamentoPend] = useState(null);
+  const confirmarPagamentoAtrasado = dataPag => {
+    beep();
+    onChange(setPagFixa(data, pagamentoPend.id, pagamentoPend.mesAtraso, {
+      pago: true,
+      dataPagamento: dataPag
+    }));
+    setPagamentoPend(null);
+  };
   const vBadge = diff => diff < 0 ? {
     l: 'Atrasado',
     c: C.red
@@ -963,7 +1033,72 @@ const Dashboard = ({
       fill: C.green,
       r: 4
     }
-  })))), isCurMes && proximos.length > 0 && /*#__PURE__*/React.createElement("div", {
+  })))), atrasados.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      border: `1px solid ${C.red}55`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 12,
+      fontWeight: 700,
+      color: C.red,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement(LR.AlertCircle, {
+    size: 14
+  }), "Pagamentos Atrasados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, atrasados.map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id + d.mesAtraso,
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '10px 14px',
+      background: C.elevated,
+      borderRadius: 8,
+      border: `1px solid ${C.red}33`
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 500
+    }
+  }, d.nome), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted
+    }
+  }, mesLabel(d.mesAtraso), " \xB7 ", d.categoria)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: 'Syne',
+      fontWeight: 700
+    }
+  }, fmt(d.valor)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setPagamentoPend(d),
+    style: {
+      ...btn('danger'),
+      padding: '6px 12px',
+      fontSize: 12,
+      whiteSpace: 'nowrap'
+    }
+  }, "Pagar")))))), isCurMes && proximos.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: card()
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1017,7 +1152,12 @@ const Dashboard = ({
         fontWeight: 700
       }
     }, fmt(d.valor))));
-  }))));
+  }))), /*#__PURE__*/React.createElement(PagamentoDataModal, {
+    open: !!pagamentoPend,
+    onClose: () => setPagamentoPend(null),
+    onConfirm: confirmarPagamentoAtrasado,
+    nome: pagamentoPend ? `${pagamentoPend.nome} (${mesLabel(pagamentoPend.mesAtraso)})` : ''
+  }));
 };
 
 // ── DESPESAS FIXAS ───────────────────────────────────────────────────────
@@ -1077,9 +1217,10 @@ const DespesasFixas = ({
       ...form,
       valor: +form.valor,
       diaVencimento: +form.diaVencimento,
-      pago: edit?.pago || false,
       id: edit?.id || uid()
     };
+    delete item.pago;
+    delete item.dataPagamento;
     const list = edit ? data.despesasFixas.map(d => d.id === edit.id ? item : d) : [...data.despesasFixas, item];
     onChange({
       ...data,
@@ -1096,43 +1237,34 @@ const DespesasFixas = ({
   };
   const [pagamentoPend, setPagamentoPend] = useState(null);
   const togglePago = id => {
-    const item = data.despesasFixas.find(d => d.id === id);
-    if (!item) return;
-    if (!item.pago) {
-      setPagamentoPend(item);
+    const status = getPagFixa(data, id, mes);
+    if (!status.pago) {
+      setPagamentoPend(id);
       return;
     }
-    onChange({
-      ...data,
-      despesasFixas: data.despesasFixas.map(d => d.id === id ? {
-        ...d,
-        pago: false,
-        dataPagamento: null
-      } : d)
-    });
+    onChange(setPagFixa(data, id, mes, {
+      pago: false,
+      dataPagamento: null
+    }));
   };
   const confirmarPagamento = dataPag => {
     beep();
-    onChange({
-      ...data,
-      despesasFixas: data.despesasFixas.map(d => d.id === pagamentoPend.id ? {
-        ...d,
-        pago: true,
-        dataPagamento: dataPag
-      } : d)
-    });
+    onChange(setPagFixa(data, pagamentoPend, mes, {
+      pago: true,
+      dataPagamento: dataPag
+    }));
     setPagamentoPend(null);
   };
   const filtered = useMemo(() => {
     let l = [...data.despesasFixas];
-    if (filtro === 'Pagos') l = l.filter(d => d.pago);
-    if (filtro === 'Pendentes') l = l.filter(d => !d.pago);
+    if (filtro === 'Pagos') l = l.filter(d => getPagFixa(data, d.id, mes).pago);
+    if (filtro === 'Pendentes') l = l.filter(d => !getPagFixa(data, d.id, mes).pago);
     if (catFil) l = l.filter(d => d.categoria === catFil);
     if (ordem === 'vencimento') l.sort((a, b) => a.diaVencimento - b.diaVencimento);
     if (ordem === 'valor') l.sort((a, b) => b.valor - a.valor);
     if (ordem === 'nome') l.sort((a, b) => a.nome.localeCompare(b.nome));
     return l;
-  }, [data.despesasFixas, filtro, catFil, ordem]);
+  }, [data.despesasFixas, data.pagamentosFixas, mes, filtro, catFil, ordem]);
   const total = useMemo(() => filtered.reduce((s, d) => s + d.valor, 0), [filtered]);
   const pad = mobile ? 16 : 24;
   return /*#__PURE__*/React.createElement("div", {
@@ -1188,7 +1320,7 @@ const DespesasFixas = ({
       fontSize: 13,
       color: C.amber
     }
-  }, "Visualizando ", /*#__PURE__*/React.createElement("strong", null, mesLabel(mes)), " \u2014 os itens refletem o estado atual; edi\xE7\xE3o dispon\xEDvel apenas no m\xEAs corrente"), /*#__PURE__*/React.createElement("div", {
+  }, "Visualizando ", /*#__PURE__*/React.createElement("strong", null, mesLabel(mes)), " \u2014 voc\xEA pode confirmar pagamentos deste m\xEAs; editar ou excluir a despesa s\xF3 no m\xEAs corrente"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
@@ -1244,81 +1376,84 @@ const DespesasFixas = ({
       padding: 40,
       color: C.muted
     }
-  }, "Nenhuma despesa encontrada") : filtered.map(item => /*#__PURE__*/React.createElement("div", {
-    key: item.id,
-    style: {
-      ...card(),
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      opacity: item.pago ? .65 : 1,
-      borderLeft: `3px solid ${CAT_COLORS[item.categoria] || C.border}`
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => isCurMes && togglePago(item.id),
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: '50%',
-      border: `2px solid ${item.pago ? C.green : C.border}`,
-      background: item.pago ? C.green : 'transparent',
-      cursor: isCurMes ? 'pointer' : 'default',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      transition: 'all .2s'
-    }
-  }, item.pago && /*#__PURE__*/React.createElement(LR.Check, {
-    size: 13,
-    color: "#0A0A0F",
-    strokeWidth: 3
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 500,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      flexWrap: 'wrap'
-    }
-  }, item.nome, item.pago && /*#__PURE__*/React.createElement(Badge, {
-    color: C.green
-  }, "Pago")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: C.muted,
-      marginTop: 2
-    }
-  }, item.categoria, " \xB7 Dia ", item.diaVencimento, " \xB7 ", item.metodoPagamento, item.pago && item.dataPagamento && ` \xB7 Pago em ${fmtDataBR(item.dataPagamento)}`), item.observacao && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: C.muted,
-      marginTop: 1,
-      fontStyle: 'italic'
-    }
-  }, item.observacao)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'Syne',
-      fontSize: 17,
-      fontWeight: 700,
-      flexShrink: 0
-    }
-  }, fmt(item.valor)), isCurMes && /*#__PURE__*/React.createElement("button", {
-    onClick: () => openEdit(item),
-    style: {
-      ...btn('ghost'),
-      padding: '5px 8px',
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(LR.Pencil, {
-    size: 13
-  }))))), /*#__PURE__*/React.createElement(Modal, {
+  }, "Nenhuma despesa encontrada") : filtered.map(item => {
+    const pagStatus = getPagFixa(data, item.id, mes);
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      style: {
+        ...card(),
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        opacity: pagStatus.pago ? .65 : 1,
+        borderLeft: `3px solid ${CAT_COLORS[item.categoria] || C.border}`
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => togglePago(item.id),
+      style: {
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        border: `2px solid ${pagStatus.pago ? C.green : C.border}`,
+        background: pagStatus.pago ? C.green : 'transparent',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        transition: 'all .2s'
+      }
+    }, pagStatus.pago && /*#__PURE__*/React.createElement(LR.Check, {
+      size: 13,
+      color: "#0A0A0F",
+      strokeWidth: 3
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 500,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap'
+      }
+    }, item.nome, pagStatus.pago && /*#__PURE__*/React.createElement(Badge, {
+      color: C.green
+    }, "Pago")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 2
+      }
+    }, item.categoria, " \xB7 Dia ", item.diaVencimento, " \xB7 ", item.metodoPagamento, pagStatus.pago && pagStatus.dataPagamento && ` \xB7 Pago em ${fmtDataBR(pagStatus.dataPagamento)}`), item.observacao && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 1,
+        fontStyle: 'italic'
+      }
+    }, item.observacao)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: 'Syne',
+        fontSize: 17,
+        fontWeight: 700,
+        flexShrink: 0
+      }
+    }, fmt(item.valor)), isCurMes && /*#__PURE__*/React.createElement("button", {
+      onClick: () => openEdit(item),
+      style: {
+        ...btn('ghost'),
+        padding: '5px 8px',
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement(LR.Pencil, {
+      size: 13
+    })));
+  })), /*#__PURE__*/React.createElement(Modal, {
     open: open,
     onClose: () => setOpen(false),
     title: edit ? 'Editar Despesa' : 'Nova Despesa',
@@ -1383,7 +1518,7 @@ const DespesasFixas = ({
     open: !!pagamentoPend,
     onClose: () => setPagamentoPend(null),
     onConfirm: confirmarPagamento,
-    nome: pagamentoPend?.nome
+    nome: data.despesasFixas.find(d => d.id === pagamentoPend)?.nome
   }));
 };
 
@@ -2333,10 +2468,11 @@ const Config = ({
     const r = new FileReader();
     r.onload = ev => {
       try {
-        onChange({
+        const raw = JSON.parse(ev.target.result);
+        onChange(migrateData({
           ...DEF,
-          ...JSON.parse(ev.target.result)
-        });
+          ...raw
+        }, raw));
         onClose();
       } catch {
         alert('Arquivo inválido');
@@ -2346,13 +2482,16 @@ const Config = ({
   };
   const limpar = () => {
     if (!confirm('Isso irá resetar todos os status de pagamento do mês. Continuar?')) return;
+    const mes = getMes();
+    const pagamentosFixas = { ...data.pagamentosFixas };
+    data.despesasFixas.forEach(d => {
+      if (!pagamentosFixas[d.id]) return;
+      const { [mes]: _removido, ...resto } = pagamentosFixas[d.id];
+      pagamentosFixas[d.id] = resto;
+    });
     onChange({
       ...data,
-      despesasFixas: data.despesasFixas.map(d => ({
-        ...d,
-        pago: false,
-        dataPagamento: null
-      }))
+      pagamentosFixas
     });
     onClose();
   };
@@ -2580,7 +2719,7 @@ const Meses = ({
   } = data;
   const mes = config.mesAtual || getMes();
   const totalFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
-  const pagoFixas = useMemo(() => despesasFixas.filter(d => d.pago).reduce((s, d) => s + (d.valor || 0), 0), [despesasFixas]);
+  const pagoFixas = useMemo(() => despesasFixas.reduce((s, d) => s + (getPagFixa(data, d.id, mes).pago ? d.valor || 0 : 0), 0), [despesasFixas, data.pagamentosFixas, mes]);
   const totalCartoes = useMemo(() => cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [cartoes, mes]);
   const pagoCartoes = useMemo(() => cartoes.reduce((s, c) => {
     const f = c.faturas?.[mes];
@@ -2789,7 +2928,7 @@ const Pendentes = ({
 }) => {
   const mobile = useMobile();
   const mes = getMes();
-  const fixasPend = useMemo(() => data.despesasFixas.filter(d => !d.pago), [data.despesasFixas]);
+  const fixasPend = useMemo(() => data.despesasFixas.filter(d => !getPagFixa(data, d.id, mes).pago), [data.despesasFixas, data.pagamentosFixas, mes]);
   const parcelasPend = useMemo(() => data.parcelas.filter(p => p.status === 'ativa' && !p.cartaoId && !p.pago), [data.parcelas]);
   const cartoesPend = useMemo(() => data.cartoes.filter(c => {
     const fat = c.faturas?.[mes];
@@ -2827,14 +2966,10 @@ const Pendentes = ({
     beep();
     const item = pagamentoPend;
     if (item.tipo === 'fixa') {
-      onChange({
-        ...data,
-        despesasFixas: data.despesasFixas.map(d => d.id !== item.id ? d : {
-          ...d,
-          pago: true,
-          dataPagamento: dataPag
-        })
-      });
+      onChange(setPagFixa(data, item.id, mes, {
+        pago: true,
+        dataPagamento: dataPag
+      }));
     } else if (item.tipo === 'parcela') {
       onChange({
         ...data,
@@ -3482,14 +3617,12 @@ const App = () => {
     if (!auth || !syncCfg.enabled || !syncCfg.binId || !syncCfg.apiKey) return;
     setSyncSt('syncing');
     cloudPull(syncCfg.binId, syncCfg.apiKey).then(d => {
-      setData({
+      const merged = migrateData({
         ...DEF,
         ...d
-      });
-      save({
-        ...DEF,
-        ...d
-      });
+      }, d);
+      setData(merged);
+      save(merged);
       setSyncSt('synced');
     }).catch(() => setSyncSt('error'));
   }, [auth]);
@@ -3506,7 +3639,7 @@ const App = () => {
       };
       if (last === cur) return prev;
       const totalFixas = prev.despesasFixas.reduce((s, x) => s + (x.valor || 0), 0);
-      const pagoFixas = prev.despesasFixas.filter(x => x.pago).reduce((s, x) => s + (x.valor || 0), 0);
+      const pagoFixas = prev.despesasFixas.reduce((s, x) => s + (getPagFixa(prev, x.id, last).pago ? x.valor || 0 : 0), 0);
       const newParcelas = prev.parcelas.map(p => {
         if (p.status !== 'ativa') return p;
         const next = (p.parcelaAtual || 1) + 1;
@@ -3523,11 +3656,6 @@ const App = () => {
           lastSeenMonth: cur,
           mesAtual: cur
         },
-        despesasFixas: prev.despesasFixas.map(x => ({
-          ...x,
-          pago: false,
-          dataPagamento: null
-        })),
         parcelas: newParcelas.map(p => ({
           ...p,
           pago: false,
@@ -3548,6 +3676,7 @@ const App = () => {
   const VIEWS = {
     dashboard: /*#__PURE__*/React.createElement(Dashboard, {
       data: data,
+      onChange: handleChange,
       viewMonth: viewMonth,
       onMonthChange: setViewMonth
     }),
