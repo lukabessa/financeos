@@ -150,6 +150,12 @@ const fmt = v => new Intl.NumberFormat('pt-BR', {
   currency: 'BRL'
 }).format(v || 0);
 const fmtP = v => `${(v || 0).toFixed(1)}%`;
+const hoje = () => new Date().toISOString().slice(0, 10);
+const fmtDataBR = iso => {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+};
 const getMes = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -596,6 +602,30 @@ const Modal = ({
       padding: 12
     }
   }, "Cancelar"))));
+};
+const PagamentoDataModal = ({
+  open,
+  onClose,
+  onConfirm,
+  nome
+}) => {
+  const [dataPag, setDataPag] = useState(hoje());
+  useEffect(() => {
+    if (open) setDataPag(hoje());
+  }, [open]);
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: open,
+    onClose: onClose,
+    title: "Confirmar pagamento",
+    saveLabel: "Confirmar pagamento",
+    onSave: () => onConfirm(dataPag)
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: nome ? `Quando "${nome}" foi pago?` : 'Quando foi pago?'
+  }, /*#__PURE__*/React.createElement(Inp, {
+    type: "date",
+    value: dataPag,
+    onChange: e => setDataPag(e.target.value)
+  })));
 };
 const Stat = ({
   label,
@@ -1064,19 +1094,34 @@ const DespesasFixas = ({
     });
     setOpen(false);
   };
+  const [pagamentoPend, setPagamentoPend] = useState(null);
   const togglePago = id => {
-    const list = data.despesasFixas.map(d => {
-      if (d.id !== id) return d;
-      if (!d.pago) beep();
-      return {
-        ...d,
-        pago: !d.pago
-      };
-    });
+    const item = data.despesasFixas.find(d => d.id === id);
+    if (!item) return;
+    if (!item.pago) {
+      setPagamentoPend(item);
+      return;
+    }
     onChange({
       ...data,
-      despesasFixas: list
+      despesasFixas: data.despesasFixas.map(d => d.id === id ? {
+        ...d,
+        pago: false,
+        dataPagamento: null
+      } : d)
     });
+  };
+  const confirmarPagamento = dataPag => {
+    beep();
+    onChange({
+      ...data,
+      despesasFixas: data.despesasFixas.map(d => d.id === pagamentoPend.id ? {
+        ...d,
+        pago: true,
+        dataPagamento: dataPag
+      } : d)
+    });
+    setPagamentoPend(null);
   };
   const filtered = useMemo(() => {
     let l = [...data.despesasFixas];
@@ -1250,7 +1295,7 @@ const DespesasFixas = ({
       color: C.muted,
       marginTop: 2
     }
-  }, item.categoria, " \xB7 Dia ", item.diaVencimento, " \xB7 ", item.metodoPagamento), item.observacao && /*#__PURE__*/React.createElement("div", {
+  }, item.categoria, " \xB7 Dia ", item.diaVencimento, " \xB7 ", item.metodoPagamento, item.pago && item.dataPagamento && ` \xB7 Pago em ${fmtDataBR(item.dataPagamento)}`), item.observacao && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: C.muted,
@@ -1334,7 +1379,12 @@ const DespesasFixas = ({
     value: form.observacao || '',
     onChange: e => F('observacao')(e.target.value),
     placeholder: "Opcional..."
-  }))));
+  }))), /*#__PURE__*/React.createElement(PagamentoDataModal, {
+    open: !!pagamentoPend,
+    onClose: () => setPagamentoPend(null),
+    onConfirm: confirmarPagamento,
+    nome: pagamentoPend?.nome
+  }));
 };
 
 // ── CARTÕES (simplificado) ───────────────────────────────────────────────
@@ -1424,29 +1474,57 @@ const Cartoes = ({
       cartoes
     });
   };
+  const [pagamentoPend, setPagamentoPend] = useState(null);
   const togglePago = cid => {
-    const cartoes = data.cartoes.map(c => {
-      if (c.id !== cid) return c;
-      const fat = c.faturas?.[mes] || {
-        pago: false,
-        valor: 0
-      };
-      if (!fat.pago) beep();
-      return {
-        ...c,
-        faturas: {
-          ...c.faturas,
-          [mes]: {
-            ...fat,
-            pago: !fat.pago
-          }
-        }
-      };
-    });
+    const c = data.cartoes.find(c => c.id === cid);
+    const fat = c?.faturas?.[mes] || {
+      pago: false,
+      valor: 0
+    };
+    if (!fat.pago) {
+      setPagamentoPend(c);
+      return;
+    }
     onChange({
       ...data,
-      cartoes
+      cartoes: data.cartoes.map(c2 => c2.id !== cid ? c2 : {
+        ...c2,
+        faturas: {
+          ...c2.faturas,
+          [mes]: {
+            ...fat,
+            pago: false,
+            dataPagamento: null
+          }
+        }
+      })
     });
+  };
+  const confirmarPagamento = dataPag => {
+    beep();
+    const cid = pagamentoPend.id;
+    onChange({
+      ...data,
+      cartoes: data.cartoes.map(c2 => {
+        if (c2.id !== cid) return c2;
+        const fat = c2.faturas?.[mes] || {
+          pago: false,
+          valor: 0
+        };
+        return {
+          ...c2,
+          faturas: {
+            ...c2.faturas,
+            [mes]: {
+              ...fat,
+              pago: true,
+              dataPagamento: dataPag
+            }
+          }
+        };
+      })
+    });
+    setPagamentoPend(null);
   };
   const totalFaturas = useMemo(() => data.cartoes.reduce((s, c) => s + (c.faturas?.[mes]?.valor || 0), 0), [data.cartoes, mes]);
   const totalPago = useMemo(() => data.cartoes.reduce((s, c) => {
@@ -1619,7 +1697,7 @@ const Cartoes = ({
         borderRadius: 20,
         fontWeight: 700
       }
-    }, "\u2713 Pago"))), /*#__PURE__*/React.createElement("div", {
+    }, "\u2713 Pago", fat.dataPagamento && ` em ${fmtDataBR(fat.dataPagamento)}`))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'grid',
         gridTemplateColumns: '1fr auto',
@@ -1771,7 +1849,12 @@ const Cartoes = ({
       fontSize: 13,
       color: C.muted
     }
-  }, fC.cor || '#820AD1')))));
+  }, fC.cor || '#820AD1')))), /*#__PURE__*/React.createElement(PagamentoDataModal, {
+    open: !!pagamentoPend,
+    onClose: () => setPagamentoPend(null),
+    onConfirm: confirmarPagamento,
+    nome: pagamentoPend?.nome
+  }));
 };
 
 // ── PARCELAS ─────────────────────────────────────────────────────────────
@@ -1857,20 +1940,35 @@ const Parcelas = ({
     });
     setOpen(false);
   };
+  const [pagamentoPend, setPagamentoPend] = useState(null);
   const togglePagoParcela = (e, id) => {
     e.stopPropagation();
-    const list = data.parcelas.map(p => {
-      if (p.id !== id) return p;
-      if (!p.pago) beep();
-      return {
-        ...p,
-        pago: !p.pago
-      };
-    });
+    const item = data.parcelas.find(p => p.id === id);
+    if (!item) return;
+    if (!item.pago) {
+      setPagamentoPend(item);
+      return;
+    }
     onChange({
       ...data,
-      parcelas: list
+      parcelas: data.parcelas.map(p => p.id === id ? {
+        ...p,
+        pago: false,
+        dataPagamento: null
+      } : p)
     });
+  };
+  const confirmarPagamento = dataPag => {
+    beep();
+    onChange({
+      ...data,
+      parcelas: data.parcelas.map(p => p.id === pagamentoPend.id ? {
+        ...p,
+        pago: true,
+        dataPagamento: dataPag
+      } : p)
+    });
+    setPagamentoPend(null);
   };
   const filtered = useMemo(() => {
     if (filtro === 'Ativas') return data.parcelas.filter(p => p.status === 'ativa');
@@ -2019,7 +2117,13 @@ const Parcelas = ({
         color: C.muted,
         marginTop: 2
       }
-    }, "In\xEDcio: ", mesLabel(item.inicio)), item.observacao && /*#__PURE__*/React.createElement("div", {
+    }, "In\xEDcio: ", mesLabel(item.inicio)), semCartao && item.pago && item.dataPagamento && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: C.muted,
+        marginTop: 2
+      }
+    }, "Pago em ", fmtDataBR(item.dataPagamento)), item.observacao && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
         color: C.muted,
@@ -2169,7 +2273,12 @@ const Parcelas = ({
     value: form.observacao || '',
     onChange: e => F('observacao')(e.target.value),
     placeholder: "Opcional..."
-  }))));
+  }))), /*#__PURE__*/React.createElement(PagamentoDataModal, {
+    open: !!pagamentoPend,
+    onClose: () => setPagamentoPend(null),
+    onConfirm: confirmarPagamento,
+    nome: pagamentoPend?.descricao
+  }));
 };
 
 // ── CONFIGURAÇÕES ────────────────────────────────────────────────────────
@@ -2241,7 +2350,8 @@ const Config = ({
       ...data,
       despesasFixas: data.despesasFixas.map(d => ({
         ...d,
-        pago: false
+        pago: false,
+        dataPagamento: null
       }))
     });
     onClose();
@@ -2711,14 +2821,18 @@ const Pendentes = ({
     sub: 'Cart\xE3o \xB7 Venc. dia ' + c.diaVencimento
   }))].sort((a, b) => a.dia != null && b.dia != null ? a.dia - b.dia : a.dia != null ? -1 : b.dia != null ? 1 : 0), [fixasPend, parcelasPend, cartoesPend, mes]);
   const total = useMemo(() => items.reduce((s, i) => s + i.valor, 0), [items]);
-  const handleToggle = item => {
+  const [pagamentoPend, setPagamentoPend] = useState(null);
+  const handleToggle = item => setPagamentoPend(item);
+  const confirmarPagamento = dataPag => {
     beep();
+    const item = pagamentoPend;
     if (item.tipo === 'fixa') {
       onChange({
         ...data,
         despesasFixas: data.despesasFixas.map(d => d.id !== item.id ? d : {
           ...d,
-          pago: true
+          pago: true,
+          dataPagamento: dataPag
         })
       });
     } else if (item.tipo === 'parcela') {
@@ -2726,7 +2840,8 @@ const Pendentes = ({
         ...data,
         parcelas: data.parcelas.map(p => p.id !== item.id ? p : {
           ...p,
-          pago: true
+          pago: true,
+          dataPagamento: dataPag
         })
       });
     } else {
@@ -2742,12 +2857,14 @@ const Pendentes = ({
             ...c.faturas,
             [mes]: {
               ...fat,
-              pago: true
+              pago: true,
+              dataPagamento: dataPag
             }
           }
         })
       });
     }
+    setPagamentoPend(null);
   };
   const tipoBadge = tipo => tipo === 'fixa' ? {
     l: 'Fixa',
@@ -2869,7 +2986,12 @@ const Pendentes = ({
     }, /*#__PURE__*/React.createElement(LR.Check, {
       size: 13
     }), "Pagar"));
-  })));
+  })), /*#__PURE__*/React.createElement(PagamentoDataModal, {
+    open: !!pagamentoPend,
+    onClose: () => setPagamentoPend(null),
+    onConfirm: confirmarPagamento,
+    nome: pagamentoPend?.nome
+  }));
 };
 
 // ── SIDEBAR ──────────────────────────────────────────────────────────────
@@ -3403,11 +3525,13 @@ const App = () => {
         },
         despesasFixas: prev.despesasFixas.map(x => ({
           ...x,
-          pago: false
+          pago: false,
+          dataPagamento: null
         })),
         parcelas: newParcelas.map(p => ({
           ...p,
-          pago: false
+          pago: false,
+          dataPagamento: null
         })),
         historicoMensal: {
           ...prev.historicoMensal,
