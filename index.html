@@ -706,44 +706,51 @@ const Stat = ({
   Icon,
   color = C.green,
   sub
-}) => /*#__PURE__*/React.createElement("div", {
-  style: {
-    ...card(),
-    borderTop: `2px solid ${color}`
-  }
-}, /*#__PURE__*/React.createElement("div", {
-  style: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 8
-  }
-}, /*#__PURE__*/React.createElement("span", {
-  style: {
-    fontSize: 11,
-    color: C.muted,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '.05em'
-  }
-}, label), Icon && /*#__PURE__*/React.createElement(Icon, {
-  size: 15,
-  color: color,
-  style: {
-    opacity: .7
-  }
-})), /*#__PURE__*/React.createElement("div", {
-  style: {
-    fontFamily: 'Syne',
-    fontSize: 24,
-    fontWeight: 800
-  }
-}, value), sub && /*#__PURE__*/React.createElement("div", {
-  style: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 4
-  }
-}, sub));
+}) => {
+  const mobile = useMobile();
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      padding: mobile ? 14 : 20,
+      minWidth: 0,
+      borderTop: `2px solid ${color}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      fontWeight: 600,
+      textTransform: 'uppercase',
+      letterSpacing: '.05em'
+    }
+  }, label), Icon && /*#__PURE__*/React.createElement(Icon, {
+    size: 15,
+    color: color,
+    style: {
+      opacity: .7,
+      flexShrink: 0
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: mobile ? 18 : 24,
+      fontWeight: 800,
+      overflowWrap: 'anywhere'
+    }
+  }, value), sub && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: C.muted,
+      marginTop: 4
+    }
+  }, sub));
+};
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────
 const Dashboard = ({
@@ -880,7 +887,7 @@ const Dashboard = ({
   }, "Visualizando hist\xF3rico de ", /*#__PURE__*/React.createElement("strong", null, mesLabel(mes)), " \u2014 despesas fixas e parcelas mostram o resumo do per\xEDodo"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(auto-fit,minmax(200px,1fr))',
+      gridTemplateColumns: mobile ? 'minmax(0,1fr) minmax(0,1fr)' : 'repeat(auto-fit,minmax(200px,1fr))',
       gap: 10,
       marginBottom: 14
     }
@@ -908,7 +915,7 @@ const Dashboard = ({
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',
+      gridTemplateColumns: mobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12,
       marginBottom: 12
     }
@@ -1504,7 +1511,7 @@ const DespesasFixas = ({
   }, c)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement(Field, {
@@ -1812,7 +1819,7 @@ const GastosVariaveis = ({
   }, c)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement(Field, {
@@ -2162,7 +2169,7 @@ const Cartoes = ({
     }, "\u2713 Pago", fat.dataPagamento && ` em ${fmtDataBR(fat.dataPagamento)}`))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'grid',
-        gridTemplateColumns: '1fr auto',
+        gridTemplateColumns: 'minmax(0,1fr) auto',
         gap: 10,
         alignItems: 'flex-end',
         marginBottom: 14
@@ -2228,7 +2235,7 @@ const Cartoes = ({
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement(Field, {
@@ -2256,7 +2263,7 @@ const Cartoes = ({
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement(Field, {
@@ -2663,7 +2670,7 @@ const Parcelas = ({
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement(Field, {
@@ -2689,7 +2696,7 @@ const Parcelas = ({
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
       gap: 12
     }
   }, /*#__PURE__*/React.createElement(Field, {
@@ -3214,7 +3221,7 @@ const Meses = ({
     }, "total comprometido"))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'grid',
-        gridTemplateColumns: mobile ? '1fr 1fr' : '1fr 1fr',
+        gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)',
         gap: 10,
         marginBottom: 12
       }
@@ -4330,6 +4337,7 @@ const App = () => {
   }), /*#__PURE__*/React.createElement("main", {
     style: {
       flex: 1,
+      minWidth: 0,
       overflow: 'hidden',
       paddingTop: mobile ? 52 : 0
     }
