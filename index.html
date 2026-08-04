@@ -262,6 +262,7 @@ const DEF = {
     mesAtual: getMes()
   },
   despesasFixas: [],
+  gastosVariaveis: [],
   cartoes: [],
   parcelas: [],
   historicoMensal: {},
@@ -1546,6 +1547,306 @@ const DespesasFixas = ({
     onConfirm: confirmarPagamento,
     nome: data.despesasFixas.find(d => d.id === pagamentoPend)?.nome
   }));
+};
+
+// ── GASTOS VARIÁVEIS ─────────────────────────────────────────────────────
+const GastosVariaveis = ({
+  data,
+  onChange,
+  viewMonth,
+  onMonthChange
+}) => {
+  const mobile = useMobile();
+  const mes = viewMonth || getMes();
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState(null);
+  const [form, setForm] = useState({});
+  const [errs, setErrs] = useState({});
+  const [catFil, setCatFil] = useState('');
+  const [ordem, setOrdem] = useState('data');
+  const F = k => v => setForm(f => ({
+    ...f,
+    [k]: v
+  }));
+  const openAdd = () => {
+    setEdit(null);
+    setForm({
+      nome: '',
+      categoria: 'Alimentação',
+      valor: '',
+      data: hoje(),
+      metodoPagamento: 'Pix',
+      observacao: ''
+    });
+    setErrs({});
+    setOpen(true);
+  };
+  const openEdit = item => {
+    setEdit(item);
+    setForm({
+      ...item,
+      valor: String(item.valor)
+    });
+    setErrs({});
+    setOpen(true);
+  };
+  const validate = () => {
+    const e = {};
+    if (!form.nome?.trim()) e.nome = 'Obrigatório';
+    if (!form.valor || isNaN(+form.valor)) e.valor = 'Valor inválido';
+    if (!form.data) e.data = 'Data inválida';
+    setErrs(e);
+    return !Object.keys(e).length;
+  };
+  const handleSave = () => {
+    if (!validate()) return;
+    const item = {
+      ...form,
+      valor: +form.valor,
+      id: edit?.id || uid()
+    };
+    const list = edit ? data.gastosVariaveis.map(g => g.id === edit.id ? item : g) : [...data.gastosVariaveis, item];
+    onChange({
+      ...data,
+      gastosVariaveis: list
+    });
+    setOpen(false);
+  };
+  const handleDel = () => {
+    onChange({
+      ...data,
+      gastosVariaveis: data.gastosVariaveis.filter(g => g.id !== edit.id)
+    });
+    setOpen(false);
+  };
+  const filtered = useMemo(() => {
+    let l = data.gastosVariaveis.filter(g => (g.data || '').slice(0, 7) === mes);
+    if (catFil) l = l.filter(g => g.categoria === catFil);
+    if (ordem === 'data') l.sort((a, b) => b.data.localeCompare(a.data));
+    if (ordem === 'valor') l.sort((a, b) => b.valor - a.valor);
+    if (ordem === 'nome') l.sort((a, b) => a.nome.localeCompare(b.nome));
+    return l;
+  }, [data.gastosVariaveis, mes, catFil, ordem]);
+  const total = useMemo(() => filtered.reduce((s, g) => s + g.valor, 0), [filtered]);
+  const pad = mobile ? 16 : 24;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page-enter",
+    style: {
+      padding: pad,
+      overflowY: 'auto',
+      height: '100%'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+      flexWrap: 'wrap',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: mobile ? 22 : 28,
+      fontWeight: 800
+    }
+  }, "Gastos Vari\xE1veis"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: C.muted,
+      fontSize: 13,
+      marginTop: 4
+    }
+  }, fmt(total), " \xB7 ", filtered.length, " gasto", filtered.length !== 1 ? 's' : '')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement(MonthNav, {
+    month: mes,
+    onChange: onMonthChange
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: openAdd,
+    style: btn('primary')
+  }, /*#__PURE__*/React.createElement(LR.Plus, {
+    size: 15
+  }), "Adicionar"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 14,
+      flexWrap: 'wrap'
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: catFil,
+    onChange: e => setCatFil(e.target.value),
+    style: {
+      ...inputStyle(false),
+      width: 'auto',
+      padding: '6px 12px',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todas categorias"), CATEGORIAS.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c
+  }, c))), /*#__PURE__*/React.createElement("select", {
+    value: ordem,
+    onChange: e => setOrdem(e.target.value),
+    style: {
+      ...inputStyle(false),
+      width: 'auto',
+      padding: '6px 12px',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "data"
+  }, "↕ Data"), /*#__PURE__*/React.createElement("option", {
+    value: "valor"
+  }, "↕ Valor"), /*#__PURE__*/React.createElement("option", {
+    value: "nome"
+  }, "↕ Nome"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, filtered.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...card(),
+      textAlign: 'center',
+      padding: 40,
+      color: C.muted
+    }
+  }, "Nenhum gasto neste m\xEAs") : filtered.map(item => /*#__PURE__*/React.createElement("div", {
+    key: item.id,
+    style: {
+      ...card(),
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      borderLeft: `3px solid ${CAT_COLORS[item.categoria] || C.border}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      flexShrink: 0,
+      minWidth: 44
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 18,
+      fontWeight: 800,
+      lineHeight: 1
+    }
+  }, (item.data || '').slice(8, 10)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: C.muted,
+      textTransform: 'uppercase',
+      marginTop: 2
+    }
+  }, mesLabel((item.data || '').slice(0, 7)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 500
+    }
+  }, item.nome), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 2
+    }
+  }, item.categoria, " \xB7 ", item.metodoPagamento), item.observacao && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 1,
+      fontStyle: 'italic'
+    }
+  }, item.observacao)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'Syne',
+      fontSize: 17,
+      fontWeight: 700,
+      flexShrink: 0
+    }
+  }, fmt(item.valor)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => openEdit(item),
+    style: {
+      ...btn('ghost'),
+      padding: '5px 8px',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(LR.Pencil, {
+    size: 13
+  }))))), /*#__PURE__*/React.createElement(Modal, {
+    open: open,
+    onClose: () => setOpen(false),
+    title: edit ? 'Editar Gasto' : 'Novo Gasto',
+    onSave: handleSave,
+    onDelete: edit ? handleDel : null
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nome",
+    error: errs.nome
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.nome,
+    value: form.nome || '',
+    onChange: e => F('nome')(e.target.value),
+    placeholder: "Ex: Mercado, iFood, Uber..."
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Categoria"
+  }, /*#__PURE__*/React.createElement(Sel, {
+    value: form.categoria || 'Alimentação',
+    onChange: e => F('categoria')(e.target.value)
+  }, CATEGORIAS.map(c => /*#__PURE__*/React.createElement("option", {
+    key: c
+  }, c)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Valor R$",
+    error: errs.valor
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.valor,
+    type: "number",
+    step: "0.01",
+    value: form.valor || '',
+    onChange: e => F('valor')(e.target.value),
+    placeholder: "0,00"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Data",
+    error: errs.data
+  }, /*#__PURE__*/React.createElement(Inp, {
+    err: errs.data,
+    type: "date",
+    value: form.data || '',
+    onChange: e => F('data')(e.target.value)
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "M\xE9todo de pagamento"
+  }, /*#__PURE__*/React.createElement(Sel, {
+    value: form.metodoPagamento || 'Pix',
+    onChange: e => F('metodoPagamento')(e.target.value)
+  }, METODOS.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m
+  }, m)))), /*#__PURE__*/React.createElement(Field, {
+    label: "Observa\xE7\xE3o"
+  }, /*#__PURE__*/React.createElement(Tex, {
+    value: form.observacao || '',
+    onChange: e => F('observacao')(e.target.value),
+    placeholder: "Opcional..."
+  }))));
 };
 
 // ── CARTÕES (simplificado) ───────────────────────────────────────────────
@@ -3383,6 +3684,10 @@ const NAV = [{
   label: 'Despesas Fixas',
   Icon: LR.Receipt
 }, {
+  id: 'gastos',
+  label: 'Gastos Variáveis',
+  Icon: LR.Wallet
+}, {
   id: 'cartoes',
   label: 'Cartões',
   Icon: LR.CreditCard
@@ -3967,6 +4272,12 @@ const App = () => {
       onMonthChange: setViewMonth
     }),
     despesas: /*#__PURE__*/React.createElement(DespesasFixas, {
+      data: data,
+      onChange: handleChange,
+      viewMonth: viewMonth,
+      onMonthChange: setViewMonth
+    }),
+    gastos: /*#__PURE__*/React.createElement(GastosVariaveis, {
       data: data,
       onChange: handleChange,
       viewMonth: viewMonth,
