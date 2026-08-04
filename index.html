@@ -223,6 +223,31 @@ const cloudPush = async (binId, apiKey, data) => {
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
 };
+
+// ── SYNC AUTOMÁTICO (API própria da Vercel, sem serviço externo) ─────────
+// Ativo sempre, em qualquer aparelho que fizer login: guarda os dados na nuvem
+// via /api/data (Vercel Blob) para que fiquem disponíveis ao entrar de outro lugar.
+const AUTO_SYNC_TOKEN = '16e33e187b675bb941ac8ebf58a3063318f47be959111b27';
+const autoCloudPull = async () => {
+  const r = await fetch('/api/data', {
+    headers: {
+      'x-financeos-token': AUTO_SYNC_TOKEN
+    }
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+};
+const autoCloudPush = async data => {
+  const r = await fetch('/api/data', {
+    method: 'POST',
+    headers: {
+      'x-financeos-token': AUTO_SYNC_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+};
 const debounce = (fn, ms) => {
   let t;
   return (...a) => {
@@ -240,7 +265,8 @@ const DEF = {
   cartoes: [],
   parcelas: [],
   historicoMensal: {},
-  pagamentosFixas: {}
+  pagamentosFixas: {},
+  updatedAt: 0
 };
 
 // Status de pagamento por despesa fixa, isolado por mês: pagamentosFixas[despesaId][mes] = { pago, dataPagamento }
@@ -2425,6 +2451,7 @@ const Config = ({
   syncCfg,
   onSyncCfg,
   syncSt,
+  autoSyncSt,
   onSyncNow
 }) => {
   const [f, setF] = useState({});
@@ -2540,6 +2567,34 @@ const Config = ({
     }
   }), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '10px 14px',
+      background: C.elevated,
+      borderRadius: 8,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: C.text
+    }
+  }, "Sincroniza\xE7\xE3o autom\xE1tica"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: C.muted,
+      marginTop: 2
+    }
+  }, "Seus dados ficam salvos neste login em qualquer aparelho")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: stColor[autoSyncSt] || C.muted
+    }
+  }, stLabel[autoSyncSt] || '\u2014')), /*#__PURE__*/React.createElement("div", {
+    style: {
       marginBottom: 4
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -2555,13 +2610,13 @@ const Config = ({
       fontWeight: 600,
       color: C.text
     }
-  }, "Sincroniza\xE7\xE3o em Nuvem"), /*#__PURE__*/React.createElement("div", {
+  }, "Sincroniza\xE7\xE3o em Nuvem (alternativa)"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: C.muted,
       marginTop: 2
     }
-  }, "JSONBin.io \u2014 dados em todos os dispositivos")), /*#__PURE__*/React.createElement("button", {
+  }, "JSONBin.io \u2014 op\xE7\xE3o manual extra, n\xE3o \xE9 necess\xE1ria")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setSc(s => ({
       ...s,
       enabled: !s.enabled
@@ -3590,6 +3645,7 @@ const App = () => {
   const [mobile, setMob] = useState(window.innerWidth < 768);
   const [syncCfg, setSyncC] = useState(loadSyncCfg);
   const [syncSt, setSyncSt] = useState('idle'); // 'idle'|'syncing'|'synced'|'error'
+  const [autoSyncSt, setAutoSyncSt] = useState('idle'); // 'idle'|'syncing'|'synced'|'error'
   const [viewMonth, setViewMonth] = useState(getMes);
   useEffect(() => {
     const h = () => setMob(window.innerWidth < 768);
@@ -3606,13 +3662,29 @@ const App = () => {
       setSyncSt('error');
     }
   }, 3000), []);
+  // Sync automático (sempre ativo, sem configuração) — guarda os dados na nuvem
+  // via /api/data para aparecerem em qualquer aparelho que fizer login.
+  const doAutoPush = useCallback(debounce(async d => {
+    setAutoSyncSt('syncing');
+    try {
+      await autoCloudPush(d);
+      setAutoSyncSt('synced');
+    } catch {
+      setAutoSyncSt('error');
+    }
+  }, 2000), []);
   const handleChange = useCallback(d => {
-    setData(d);
-    save(d);
-    doPush(d, syncCfg);
+    const d2 = {
+      ...d,
+      updatedAt: Date.now()
+    };
+    setData(d2);
+    save(d2);
+    doPush(d2, syncCfg);
+    doAutoPush(d2);
   }, [syncCfg]);
 
-  // Ao autenticar, puxa dados da nuvem se sync ativo
+  // Ao autenticar, puxa dados da nuvem se sync ativo (JSONBin, opcional)
   useEffect(() => {
     if (!auth || !syncCfg.enabled || !syncCfg.binId || !syncCfg.apiKey) return;
     setSyncSt('syncing');
@@ -3625,6 +3697,29 @@ const App = () => {
       save(merged);
       setSyncSt('synced');
     }).catch(() => setSyncSt('error'));
+  }, [auth]);
+
+  // Ao autenticar, compara com a nuvem própria (Vercel) e mantém a versão mais
+  // recente — dados de outro aparelho entram automaticamente; se este aparelho
+  // tiver a versão mais nova, ela é enviada para a nuvem.
+  useEffect(() => {
+    if (!auth) return;
+    setAutoSyncSt('syncing');
+    autoCloudPull().then(cloud => {
+      setData(prev => {
+        if (cloud && (cloud.updatedAt || 0) > (prev.updatedAt || 0)) {
+          const merged = migrateData({
+            ...DEF,
+            ...cloud
+          }, cloud);
+          save(merged);
+          setAutoSyncSt('synced');
+          return merged;
+        }
+        doAutoPush(prev);
+        return prev;
+      });
+    }).catch(() => setAutoSyncSt('error'));
   }, [auth]);
   useEffect(() => {
     const cur = getMes();
@@ -3667,9 +3762,11 @@ const App = () => {
             total: totalFixas,
             pago: pagoFixas
           }
-        }
+        },
+        updatedAt: Date.now()
       };
       save(next);
+      doAutoPush(next);
       return next;
     });
   }, []);
@@ -3744,6 +3841,7 @@ const App = () => {
       saveSyncCfg(cfg);
     },
     syncSt: syncSt,
+    autoSyncSt: autoSyncSt,
     onSyncNow: async () => {
       if (!syncCfg.enabled || !syncCfg.binId || !syncCfg.apiKey) return;
       setSyncSt('syncing');
